@@ -9,7 +9,7 @@ export class IptRestApi2 implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Read data from myfactory through the ipt RestApi2 interface',
+		description: 'Read and write myfactory data through the ipt RestApi2 interface',
 		defaults: {
 			name: 'ipt RestApi2',
 		},

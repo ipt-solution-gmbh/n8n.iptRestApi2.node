@@ -1,4 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
+import { allDataOption, fieldsOption, includeOption, simplifyProperty } from '../../shared/read';
+import { productIncludes, productSimplifiedFields } from './get';
 
 const showOnlyForProductGetMany = {
 	operation: ['getAll'],
@@ -66,6 +68,7 @@ export const productGetManyDescription: INodeProperties[] = [
 		},
 		description: 'Max number of results to return',
 	},
+	simplifyProperty('product', 'getAll', productSimplifiedFields),
 	{
 		displayName: 'Options',
 		name: 'options',
@@ -76,20 +79,9 @@ export const productGetManyDescription: INodeProperties[] = [
 		},
 		default: {},
 		options: [
-			{
-				displayName: 'Fields',
-				name: 'fields',
-				type: 'string',
-				default: '',
-				placeholder: 'ProductID,ProductNumber,Matchcode',
-				description: 'Comma-separated list of fields to return. Leave empty for all fields.',
-				routing: {
-					send: {
-						type: 'query',
-						property: 'fields',
-					},
-				},
-			},
+			allDataOption,
+			fieldsOption('ProductID,ProductNumber,Matchcode'),
+			includeOption(productIncludes),
 			{
 				displayName: 'Sort',
 				name: 'sort',
