@@ -1,17 +1,17 @@
 {
   "name": "n8n-nodes-ipt-restapi2",
   "version": "0.1.0",
-  "description": "",
+  "description": "n8n community node for ipt RestApi2, the REST interface for the myfactory ERP",
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/ipt-solution-gmbh/n8n.iptRestApi2.node#readme",
   "keywords": ["n8n-community-node-package"],
   "author": {
-    "name": "MToffano",
-    "email": "115156429+MToffano@users.noreply.github.com"
+    "name": "ipt solution GmbH",
+    "email": "info@ipt-solution.de"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/<...>/n8n-nodes-<...>.git"
+    "url": "https://github.com/ipt-solution-gmbh/n8n.iptRestApi2.node.git"
   },
   "scripts": {
     "build": "n8n-node build",
@@ -26,11 +26,11 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "strict": true,
-    "credentials": ["dist/credentials/IptRestapi2Api.credentials.js"],
-    "nodes": ["dist/nodes/IptRestapi2/IptRestapi2.node.js"]
+    "credentials": ["dist/credentials/IptRestApi2Api.credentials.js"],
+    "nodes": ["dist/nodes/IptRestApi2/IptRestApi2.node.js"]
   },
   "devDependencies": {
-    "@n8n/node-cli": "*",
+    "@n8n/node-cli": "^0.54.4",
     "eslint": "9.32.0",
     "prettier": "3.6.2",
     "release-it": "^21.1.0",
