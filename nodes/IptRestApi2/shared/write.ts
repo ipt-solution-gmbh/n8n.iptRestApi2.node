@@ -26,48 +26,68 @@ async function sendDataAsBody(
 
 // Create and Update both use the parameter name "data", each with its own description. Two
 // properties with separate displayOptions also let each operation place Data in its own spot.
+// Data starts as {}, so n8n never shows its placeholder. A notice right above it shows the same
+// example. n8n renders notice text without line breaks or code formatting (only links and
+// lists), so the example stays on one line.
 function dataProperty(
 	resource: string,
 	operation: 'create' | 'update',
 	description: string,
-	placeholder: string,
-): INodeProperties {
-	return {
-		displayName: 'Data',
-		name: 'data',
-		type: 'json',
-		required: true,
-		displayOptions: {
-			show: {
-				resource: [resource],
-				operation: [operation],
-			},
-		},
-		default: '{}',
-		placeholder,
-		description,
-		routing: {
-			send: {
-				preSend: [sendDataAsBody],
-			},
+	example: string,
+): INodeProperties[] {
+	const displayOptions = {
+		show: {
+			resource: [resource],
+			operation: [operation],
 		},
 	};
+	return [
+		{
+			displayName: `${operation === 'create' ? 'Minimal example' : 'Example'}: ${example}`,
+			name: `${resource}${operation === 'create' ? 'Create' : 'Update'}Example`,
+			type: 'notice',
+			displayOptions,
+			default: '',
+		},
+		{
+			displayName: 'Data',
+			name: 'data',
+			type: 'json',
+			required: true,
+			displayOptions,
+			default: '{}',
+			placeholder: example,
+			description,
+			routing: {
+				send: {
+					preSend: [sendDataAsBody],
+				},
+			},
+		},
+	];
 }
 
-// The description names what the resource needs to create a record, for example required fields
+// The description names what the resource needs to create a record, for example required
+// fields. The example holds only the fields a new record needs.
 export function createDataProperty(
 	resource: string,
 	description: string,
-	placeholder: string,
-): INodeProperties {
-	return dataProperty(resource, 'create', description, placeholder);
+	example: string,
+): INodeProperties[] {
+	return dataProperty(resource, 'create', description, example);
 }
 
-export function updateDataProperty(resource: string, placeholder: string): INodeProperties {
+// The note explains rules of the resource that go beyond changing single fields
+export function updateDataProperty(
+	resource: string,
+	example: string,
+	note?: string,
+): INodeProperties[] {
+	const description = 'Fields to change as a JSON object. Only the fields given here are changed.';
 	return dataProperty(
 		resource,
 		'update',
-		'Fields to change as a JSON object. Only the fields given here are changed.',
-		placeholder,
+		note === undefined ? description : `${description} ${note}`,
+		example,
 	);
 }

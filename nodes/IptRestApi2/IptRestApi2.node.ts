@@ -1,5 +1,9 @@
 import { NodeConnectionTypes, type INodeType, type INodeTypeDescription } from 'n8n-workflow';
+import { addressDescription } from './resources/address';
+import { customerDescription } from './resources/customer';
 import { productDescription } from './resources/product';
+import { salesOrderDescription } from './resources/salesOrder';
+import { salesOrderPositionDescription } from './resources/salesOrderPosition';
 
 export class IptRestApi2 implements INodeType {
 	description: INodeTypeDescription = {
@@ -32,13 +36,34 @@ export class IptRestApi2 implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
+						name: 'Address',
+						value: 'address',
+					},
+					{
+						name: 'Customer',
+						value: 'customer',
+					},
+					{
 						name: 'Product',
 						value: 'product',
 					},
+					{
+						name: 'Sales Order',
+						value: 'salesOrder',
+					},
+					{
+						name: 'Sales Order Position',
+						value: 'salesOrderPosition',
+					},
 				],
+				// Product stays the default, because a node without a stored resource falls back to it
 				default: 'product',
 			},
+			...addressDescription,
+			...customerDescription,
 			...productDescription,
+			...salesOrderDescription,
+			...salesOrderPositionDescription,
 		],
 	};
 }

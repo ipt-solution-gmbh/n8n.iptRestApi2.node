@@ -11,7 +11,7 @@ import {
 // Every response has the envelope { Result, Status, Error }. On failure Error holds one or more
 // { Message, Status } entries. The requests set ignoreHttpStatusErrors, so the messages reach
 // this function and end up in the n8n error instead of a generic status text.
-async function throwOnApiError(
+export async function throwOnApiError(
 	this: IExecuteSingleFunctions,
 	items: INodeExecutionData[],
 	response: IN8nHttpFullResponse,
@@ -35,6 +35,18 @@ async function throwOnApiError(
 		httpCode: String(response.statusCode),
 	});
 }
+
+// Actions that answer with a single object in Result (for example the recalculated sales order or
+// the result of a check) return it as one n8n item
+export const resultOutput: PostReceiveAction[] = [
+	throwOnApiError,
+	{
+		type: 'rootProperty',
+		properties: {
+			property: 'Result',
+		},
+	},
+];
 
 // Lists and single records both come as Result.BaseItems. Each record becomes one n8n item.
 export const baseItemsOutput: PostReceiveAction[] = [

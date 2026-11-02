@@ -1,5 +1,17 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
-import { includeOption, simplifyProperty } from '../../shared/read';
+import { getProperties } from '../../shared/read';
+import type { ResourceInfo } from '../../shared/resource';
+
+// Names of the resource, used by every operation
+export const productInfo: ResourceInfo = {
+	resource: 'product',
+	path: '/products',
+	label: 'product',
+	labelPlural: 'products',
+	idParameter: 'productId',
+	idDisplayName: 'Product ID',
+	idField: 'ProductID',
+};
 
 // Additional data the products endpoint can load. Get and Get Many offer the same list.
 export const productIncludes: INodePropertyOptions[] = [
@@ -23,35 +35,8 @@ export const productSimplifiedFields = [
 	'ChangeDate',
 ];
 
-export const productGetDescription: INodeProperties[] = [
-	{
-		displayName: 'Product ID',
-		name: 'productId',
-		type: 'string',
-		required: true,
-		displayOptions: {
-			show: {
-				resource: ['product'],
-				operation: ['get', 'update'],
-			},
-		},
-		default: '',
-		placeholder: '1234',
-		description: 'Numeric ID of the product (field ProductID)',
-	},
-	simplifyProperty('product', 'get', productSimplifiedFields),
-	{
-		displayName: 'Options',
-		name: 'options',
-		type: 'collection',
-		placeholder: 'Add Option',
-		displayOptions: {
-			show: {
-				resource: ['product'],
-				operation: ['get'],
-			},
-		},
-		default: {},
-		options: [includeOption(productIncludes)],
-	},
-];
+export const productGetDescription: INodeProperties[] = getProperties(
+	productInfo,
+	productSimplifiedFields,
+	productIncludes,
+);

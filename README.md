@@ -1,5 +1,7 @@
 # n8n-nodes-ipt-restapi2
 
+> **Status: beta.** This node is under active development. Operations, parameters and outputs may still change before version 1.0. Test it on a test client before you use it with production data, especially Delete and the sales order actions.
+
 This is an n8n community node. It lets you use ipt RestApi2 in your n8n workflows.
 
 ipt RestApi2 is a REST interface for the myfactory ERP, provided as a myfactory add-in by ipt solution GmbH. It gives access to master data and documents such as products, customers and sales orders.
@@ -22,10 +24,28 @@ For details, follow the [installation guide](https://docs.n8n.io/integrations/co
 
 ## Operations
 
+The node offers the resources Address, Customer, Product, Sales Order and Sales Order Position. Each resource has the operations Create, Delete, Get, Get Many and Update. Sales Order also has actions such as Copy, Transform or Recalculate. Product is described in full below. The other resources work the same way, their sections list only what differs. In the API documentation (Swagger UI) these endpoints are listed under Products, Addresses & Contacts, Customers & Suppliers and Sales.
+
 **Product**
 
 - **Create:** create a product (`POST /products`).
-  - **Data** holds the fields of the new product as a JSON object, for example `{"Matchcode": "Sample product", "BaseUnit": "pcs", "BaseDecimals": 0, "ProductGroup": "Default"}`. `Matchcode`, `BaseUnit`, `BaseDecimals` and `ProductGroup` are required, unless the access point has a template product in the API configuration. In that case the API takes every missing field except `ProductID` and `ProductNumber` from the template product. Without `ProductNumber` the API takes the next number from the number range in myfactory.
+  - **Data** holds the fields of the new product as a JSON object. `Matchcode`, `BaseUnit`, `BaseDecimals` and `ProductGroup` are required, unless the access point has a template product in the API configuration. In that case the API takes every missing field except `ProductID` and `ProductNumber` from the template product. Without `ProductNumber` the API takes the next number from the number range in myfactory.
+  - `BaseUnit` and `ProductGroup` must exist in myfactory. Replace `Stk` and `Allg.` in the minimal example with a unit and a product group of your installation:
+
+    ```json
+    { "Matchcode": "Sample product", "BaseUnit": "Stk", "BaseDecimals": 0, "ProductGroup": "Allg." }
+    ```
+
+  - Above Data, a notice shows a minimal example for Create and an example for Update of each resource.
+
+- **Delete:** delete a product by its numeric ID (`DELETE /products/{id}`). Returns one item `{"deleted": true, "ProductID": 1234}`.
+  - Deleting is permanent. myfactory removes the product together with its dependent data.
+  - If the product is still in use, for example in sales or purchase documents, bills of materials, production orders or bookings, myfactory refuses the delete. The API answers with status 409 and the node fails with the reason from myfactory.
+  - If rights are set for the access point in the API configuration, deleting needs the delete right for products. Without it the API answers with status 403.
+  - **Delete Multiple** (off by default) deletes every product that matches all **Filters** (`DELETE /products?<field>=<value>&multidelete=true`). Each filter is a field name and a value, and the field must equal the value exactly. Several filters are combined with AND. Returns one item `{"deleted": true, "ProductIDs": [1234, 1235]}`. If no product matches the filters, the API answers with status 404 and the node fails.
+  - **Warning:** Delete Multiple can delete many products in one step. Check the filters with Get Many first. The node refuses to send the request if there is no filter, a filter has no value, a field is used twice or a name is not a field name (for example `page`, `sort` or `clause`), because the API would ignore such a filter and delete every product.
+  - With Delete Multiple the API deletes one product after the other and stops at the first product that other records still refer to (status 409). Products deleted before that stay deleted.
+  - The list `ProductIDs` holds at most the first 1000 deleted products, because the API reports only one page of records. All matching products are deleted.
 - **Get:** get a single product by its numeric ID (`GET /products/{id}`). A single product always has all fields.
   - **Simplify** returns only these fields: `ProductID`, `ProductNumber`, `Matchcode`, `Name1`, `ProductGroup`, `BaseUnit`, `EANNumber`, `InActive`, `ProductState`, `ChangeDate`. Off by default.
   - **Options > Include** loads additional data: attributes, history, multiple EANs, variants.
@@ -37,13 +57,122 @@ For details, follow the [installation guide](https://docs.n8n.io/integrations/co
   - **Options > Fields** limits the response to the listed fields, for example `ProductID,ProductNumber,Matchcode`. The node then also sends `alldata=true`, so fields other than the base fields are returned too. If Fields is set, it wins over Simplify.
   - **Options > Include** loads additional data, as for Get.
   - **Options > Sort** sorts the list, for example `-ChangeDate,Matchcode`. A leading minus sorts in descending order.
+  - **Options > Filters** and **Options > Clause** search the list, see [All resources](#all-resources).
 - **Update:** change a product by its numeric ID (`PUT /products/{id}`).
   - **Data** holds the fields to change as a JSON object, for example `{"Matchcode": "New name"}`. Fields that are not listed stay unchanged.
   - Installations that require an `If-Match` header for every write are not supported yet. There the API rejects the update with status 428.
 
+**Address**
+
+- **Create** (`POST /addresses`): `Name1` and `Matchcode` are required. The API rejects a new address if an address with the same `Name1` and `Matchcode` exists. Without `AddressNumber` the API takes the next number from the number range in myfactory, without `Country` and `Language` the defaults of the installation. Minimal example:
+
+  ```json
+  { "Matchcode": "SAMPLE", "Name1": "Sample Ltd" }
+  ```
+
+- **Delete** (`DELETE /addresses/{id}`): returns `{"deleted": true, "AddressID": 1234}`. **Delete Multiple** works as for products and returns `AddressIDs`. As for products, deleting is permanent and an address that is still in use is refused with status 409 and the reason from myfactory, for example an address that is still a customer or supplier.
+- **Get** and **Get Many** (`GET /addresses`): **Simplify** returns `AddressID`, `AddressNumber`, `Matchcode`, `Name1`, `Street`, `PostalCode`, `City`, `Country`, `EMail`, `PhoneNr`. Without All Data a list has the base fields `AddressID`, `AddressNumber`, `Matchcode`, `Name1`. **Include** loads attributes and history.
+- **Update** (`PUT /addresses/{id}`): as for products.
+
+**Customer**
+
+- **Create** (`POST /customers`): a customer belongs to an address. Create the address first and pass its ID: `AddressID` is required. Without `CustomerNumber` the API takes the next number from the number range in myfactory. Without `CustomerGroup` it takes the first customer group in alphabetical order, without `CurrencyUnit` the internal currency. Minimal example, with `1234` standing for the `AddressID` of an existing address:
+
+  ```json
+  { "AddressID": 1234 }
+  ```
+
+- **Delete** (`DELETE /customers/{id}`): returns `{"deleted": true, "CustomerID": 1234}`. **Delete Multiple** works as for products and returns `CustomerIDs`. As for products, deleting is permanent and a customer that is still in use is refused with status 409 and the reason from myfactory, for example a customer that still has sales documents.
+- **Get** and **Get Many** (`GET /customers`): **Simplify** returns `CustomerID`, `CustomerNumber`, `AddressID`, `MatchcodeAdd`, `CustomerGroup`, `CurrencyUnit`, `PaymentConditions`, `IsFreezed`, `InActive`, `ChangeDate`. Name and postal address are fields of the address (`AddressID`). Without All Data a list has the base fields `CustomerID`, `AddressID`, `CustomerNumber`, `MatchcodeAdd`. **Include** loads attributes and history.
+- **Update** (`PUT /customers/{id}`): as for products.
+
+**Sales Order**
+
+- **Create** (`POST /salesorders`): `OrderType` (the number of the order type in myfactory, for example of an order confirmation or an invoice) and the customer (`CustomerID` or `CustomerNumber`) are required. The positions go into the array `Positions` of the same request, each with `ProductNumber` or `ProductID` and `Quantity`. Positions are optional. Returns the sales order with its positions. Minimal example with one position, where `2` stands for the number of an order type and `10001` and `1000` for the numbers of an existing customer and product:
+
+  ```json
+  {
+  	"OrderType": 2,
+  	"CustomerNumber": "10001",
+  	"Positions": [{ "ProductNumber": "1000", "Quantity": 2 }]
+  }
+  ```
+
+- **Delete** (`DELETE /salesorders/{id}`): deletes one sales order and returns `{"deleted": true, "OrderID": 1234}`. There is no Delete Multiple. Deleting is permanent. myfactory refuses to delete a processed sales order if its number range does not allow deleting or the user lacks the delete right, and a sales order that is the template of a contract or is linked to time billing or a time quota. The API then answers with status 409 and only the message "Order could not be deleted", without the reason.
+- **Get** (`GET /salesorders/{id}`): a single sales order always comes with its positions, taxes and payments. **Include** loads attributes and history.
+- **Get Many** (`GET /salesorders`): without All Data a list has the base fields `OrderID`, `OrderTypeDesc`, `OrderNumber`, `BookingDate`, `CustomerID`, `CustomerNumber`, `RepresentativeID`, `RepresentativeGroup`, `Matchcode`, `OrderSum`, `DeliveryDate`, `SalesDistrictID`. **Include** loads attributes, history, payments, positions and taxes.
+- **Simplify** for Get and Get Many returns `OrderID`, `OrderNumber`, `OrderType`, `OrderTypeDesc`, `BookingDate`, `CustomerID`, `CustomerNumber`, `Name1`, `OrderSum`, `CurrUnit`, without positions.
+- **Get Many with Simplify, Fields or All Data is expensive.** For these, the API loads the positions, taxes and payments of every sales order on the page, even though the response leaves them out. Keep **Limit** small for large lists.
+- **Update** (`PUT /salesorders/{id}`): changes the given header fields. Entries in `Positions` change existing positions and need their `OrderPosID`, for example `{"Positions": [{"OrderPosID": 5678, "Quantity": 3}]}`. Entries without `OrderPosID` are ignored, so Update does not add positions. Use the resource Sales Order Position for that. Returns the sales order with its positions.
+
+**Sales Order actions**
+
+Each action works on one sales order, given by its `OrderID` (not the order number, get it from Sales Order > Get Many). A notice at the top of each action says what it changes. Required parameters are shown directly, optional ones are under **Additional Fields**. The output is what the API returns, as one item. Errors of the API (for example status 404 for an unknown sales order or 409 if myfactory refuses the action) appear as the node error message.
+
+| Operation             | Request                                                                                                                                                                                                                                                                               | Output                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Change Currency       | `POST /salesorders/{id}/changecurrency` with **Currency** and the optional **Exchange Rate** (0 uses the daily rate)                                                                                                                                                                  | The sales order with its positions                                                                                                                                         |
+| Change Customer       | `POST /salesorders/{id}/changecustomer` with **New Customer ID** and the optional Prospect ID, Change Conditions, Keep Credit Card, Keep Documents, Refresh Commissions                                                                                                               | The sales order under its new ID. myfactory copies the order to the new customer, keeps the order number and deletes the old order, so the old `OrderID` no longer exists. |
+| Check Credit          | `POST /salesorders/{id}/checkcredit`                                                                                                                                                                                                                                                  | `orderId`, `customerId`, `withinLimit`, `creditLimit`, `currentExposure`, `remaining`. Changes nothing.                                                                    |
+| Complete              | `POST /salesorders/{id}/complete`                                                                                                                                                                                                                                                     | `orderId`, `completed`                                                                                                                                                     |
+| Copy                  | `POST /salesorders/{id}/copy` with the optional Customer ID, Prospect ID, Order Type and switches. Without them the copy gets the customer and the order type of the source.                                                                                                          | The new sales order with its positions                                                                                                                                     |
+| Create Purchase Order | `POST /salesorders/{id}/createpurchaseorder` with **Supplier ID**, **Position IDs** (comma-separated `OrderPosID` values of the sales order, for example `5678,5679`) and **Purchase Order Type** (0 uses the type preset in myfactory, without a preset the API rejects the request) | `orderId` and `orderNumber` of the purchase order, `orderType`, `supplierId`, `salesOrderId`, `setCompleted` and the list `positions`                                      |
+| Recalculate           | `POST /salesorders/{id}/recalc`                                                                                                                                                                                                                                                       | The sales order with its positions                                                                                                                                         |
+| Refresh Prices        | `POST /salesorders/{id}/refreshprices` with the optional Refresh Sales Prices (on by default) and Refresh Valuation Prices                                                                                                                                                            | The sales order with its positions                                                                                                                                         |
+| Renumber Positions    | `POST /salesorders/{id}/renumberpositions`                                                                                                                                                                                                                                            | The sales order with its positions                                                                                                                                         |
+| Set Printed           | `POST /salesorders/{id}/setprinted`                                                                                                                                                                                                                                                   | `orderId`, `orderState`, `alreadyPrinted`, `printBatchEntriesMarked`                                                                                                       |
+| Transform             | `POST /salesorders/transform?sourceorderid=…&targetordertype=…` with **Source Order ID**, **Target Order Type** and the optional **Full Copy**                                                                                                                                        | The new sales order with its positions                                                                                                                                     |
+
+- **Change Currency** switches the sales order to another currency and converts the prices of its positions. Use a currency code that is set up in myfactory, because neither the API nor myfactory rejects an unknown code.
+- **Change Customer** without a customer works only for offers, which can be moved to a prospect.
+- **Check Credit** fails for a sales order without a customer.
+- **Complete** marks the sales order and its main positions as completed and removes their product planning entries. myfactory accepts it only for processed or printed sales orders. If myfactory refuses, the API reports only a general error with status 409.
+- **Create Purchase Order**: Delivery Address chooses where the supplier delivers: No Separate Address, the address of the sales order or its delivery address. Purchase Units converts the quantities into the purchase unit of each product, rounded up. Combination positions are not split into their parts.
+- **Recalculate** recalculates the totals, taxes and position sums of the sales order, as after a change to a position.
+- **Refresh Prices** also overwrites prices that were entered by hand, unless myfactory is set up to keep fixed prices. At least one of Refresh Sales Prices and Refresh Valuation Prices must be on, otherwise the API answers with status 400.
+- **Renumber Positions** numbers the positions again in their order: 1, 2, 3 …, group titles open a level (1, 1.1), text and page break lines get no number. The order of the positions does not change.
+- **Set Printed** marks a processed sales order as printed and checks off its open entries in print batches. Nothing is printed or sent. A sales order that is already printed is returned unchanged. Use this for documents that reach the recipient by other means. Changing `OrderState` with Update does not do this.
+- **Transform** creates the follow-up document, for example a delivery note from an order confirmation. **Target Order Type** is the number of an order type of your installation, usually 3 for a delivery note. The target order type must be a follow-up type of the source order type in myfactory. If it is not, the error message of the API lists the allowed types. Without Full Copy only positions that are still open are taken over. Transform fails if the source sales order is locked for transforming or has no positions left to take over.
+
+**Sales Order Position**
+
+- **Create** (`POST /salesorderpositions`): `OrderID` is required. `PosType`: 1 product (the default, needs `ProductID` or `ProductNumber`), 2 manual position (send `Name1`, `Quantity`, `Unit` and `Price`), 3 alternative position (offers only), 4 text (`Name1` up to 100 characters, long text in `PosText`), 5 subtotal, 6 page break, 7 group title. Other values are rejected. `PosIndex` inserts the position before the position at that place (0 is the first), without it the position is appended. For a product position, a sent `Price` or `Discount` wins over the price lists and is kept by price refreshes (`PriceManual` 0 turns this off). myfactory recalculates the sales order, but does not number the positions again: without `PosNumber` the new position gets the number of its predecessor plus one. Use the sales order action Renumber Positions for consecutive numbers. Returns the new position. Minimal example, with `1234` standing for the `OrderID` of an existing sales order and `1000` for a product number:
+
+  ```json
+  { "OrderID": 1234, "ProductNumber": "1000", "Quantity": 2 }
+  ```
+
+- **Delete** (`DELETE /salesorderpositions/{id}`): deletes one position for good and returns `{"deleted": true, "OrderPosID": 5678}`. myfactory recalculates the sales order. The API does not check whether the sales order is already processed. There is no Delete Multiple.
+- **Get** and **Get Many** (`GET /salesorderpositions`): **Simplify** returns `OrderPosID`, `OrderID`, `PosNumber`, `ProductID`, `ProductNumber`, `Name1`, `Quantity`, `Unit`, `Price`, `Turnover`. Without All Data a list has the base fields `OrderPosID`, `OrderID`, `PosIndex`, `PosType`, `PosNumber`, `ProductID`, `ProductNumber`, `Name1`, `Quantity`, `Unit`, `Price`, `Turnover`, `PosDeleted`. **Include** loads attributes and history. For the positions of one sales order, add the filter `OrderID`.
+- **Update** (`PUT /salesorderpositions/{id}`): as for products. `OrderID` and `PosType` cannot be changed. `PosIndex` moves the position to that place in the sales order (0 is the first), the position numbers stay the same. myfactory recalculates the sales order.
+
+**All resources**
+
+Get Many has two options to search the list. Use Filters for simple matches and Clause for dates, comparisons and OR.
+
+- **Filters**: one or more pairs of field name and value, for example `ProductGroup` = `Default`. The field must equal the value exactly. Several filters are combined with AND. Upper and lower case in the field name do not matter. The API converts the value by the type of the field: write dates as `2026-10-01` or `01.10.2026`, decimals with a point or a comma, and yes/no fields such as `InActive` as `-1` (yes) or `0` (no). The node refuses names that the API would not use as a filter (for example `page`, `sort` or `clause`), a filter without a value and a field used twice. Filters cannot find empty fields, use Clause with `IS NULL` for those.
+- **Clause**: an SQL condition on the table columns of the resource. The node puts the clause in brackets and the API combines it with the filters by AND. Fields of the API response that are not table columns (for example `Positions` of a sales order) cannot be used. Write `=` as `$EQ$`, `<>` as `$NE$`, `<` as `$LT$`, `>` as `$GT$`, `>=` as `$GT$$EQ$`, `<=` as `$LT$$EQ$`, `%` as `$P100$` and `:` as `$2P$`. `IN`, `LIKE`, `IS NULL`, `AND` and `OR` are allowed. Write dates as `'yyyyMMdd'`, with a time as `'yyyy-MM-ddTHH$2P$mm$2P$ss'`. Examples:
+  - Sales orders of October 2026: `BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'`
+  - Products changed since 8 o'clock on 1 October 2026: `ChangeDate$GT$$EQ$'2026-10-01T08$2P$00$2P$00'`
+  - Products of two product groups: `ProductGroup IN ('Tools', 'Parts')` or `ProductGroup$EQ$'Tools' OR ProductGroup$EQ$'Parts'`
+  - Products with "Hammer" in the matchcode: `Matchcode LIKE '$P100$Hammer$P100$'`
+  - Addresses whose name has an umlaut as the second letter, `_` stands for any one character: `Name1 LIKE 'M_ller'`
+  - Products without an EAN: `EANNumber IS NULL OR EANNumber$EQ$''`
+  - Sales orders over 1000: `OrderSum$GT$1000`
+- The API rejects a clause with status 400 if it
+  - contains characters outside printable ASCII, for example umlauts, line breaks or tabs (for an umlaut use `_` as a placeholder in `LIKE` instead),
+  - contains `;`, `--` or `/*`,
+  - has an odd number of single quotes,
+  - is longer than 2000 characters, including the two brackets the node adds,
+  - contains SQL keywords such as `SELECT`, `SET`, `UPDATE`, `CREATE`, `CHAR` or `CONVERT`, or hex values such as `0x1F`. This also applies inside text, so `Matchcode LIKE '$P100$SET$P100$'` is rejected too.
+
+Return All keeps Filters and Clause for every page.
+
 Simplify and Fields restrict the response to the named fields. Additional data from Include is then left out.
 
-Each product becomes its own n8n item. Create and Update return the product as stored after the write. Errors returned by the API (for example "Login failed" or "No records found") appear as the error message of the node.
+Each record becomes its own n8n item. Create and Update return the record as stored after the write. Errors returned by the API (for example "Login failed" or "No records found") appear as the error message of the node.
+
+With Delete Multiple the API deletes one record after the other and stops at the first record it cannot delete. The delete is not atomic: records deleted before that stay deleted.
 
 ## Credentials
 
@@ -63,6 +192,9 @@ When you save the credential, n8n calls `GET /ipt/api/info`. The test fails if t
 
 - Requires ipt RestApi2 29.12.0 or later (the `fields` parameter was added in that version).
 - The option Include needs ipt RestApi2 31.0.5 or later. Older versions ignore attributes and history and return variants and multiple EANs as empty lists.
+- Some sales order actions need a later version: Create Purchase Order 32.1.0, Set Printed 34.5.0, Renumber Positions 57.9.0.
+- Options > Clause needs ipt RestApi2 29.13.1 or later. Older versions ignore a rejected clause and return unfiltered results.
+- The field `PosIndex` of sales order positions needs ipt RestApi2 57.9.0 or later: in lists, and to insert a position at a given place (Create) or move it (Update).
 - Built with `@n8n/node-cli` 0.54.4 and `n8n-workflow` 2.45. Not yet tested against specific n8n versions.
 
 ## Usage
@@ -81,11 +213,25 @@ The node calls `GET /ipt/api/products` with the query parameters `pagesize=50`, 
 The node can be attached to an AI Agent node as a tool.
 
 - **One tool node per operation.** Resource and operation are fixed for each tool node. Add one node for "Get many products", another for "Update a product", and so on.
+- **IDs as parameters.** The ID parameters are Product ID (`productId`), Address ID (`addressId`), Customer ID (`customerId`), Sales Order ID (`orderId`, also for the sales order actions except Transform) and Sales Order Position ID (`orderPosId`). Transform uses Source Order ID (`sourceOrderId`) and Target Order Type (`targetOrderType`).
 - **Tool description.** By default n8n builds the description from the action, for example "Get many products from myfactory in ipt RestApi2". The descriptions of operations and parameters are not passed to the model. Set the tool description manually and say what the tool returns and when to use it, for example: "Searches products in the myfactory ERP. Returns product number, matchcode, name and product group."
 - **Let the model fill parameters with `$fromAI`.**
   - Product ID: `{{ $fromAI("productId", "Numeric ProductID of the product", "number") }}`
   - Data: `{{ $fromAI("data", "Fields to write as a JSON object. Use myfactory field names such as Matchcode, Name1, BaseUnit or ProductGroup. A new product needs Matchcode, BaseUnit, BaseDecimals and ProductGroup.", "json") }}`
-- **Keep the output small.** The tool output goes to the model as JSON and counts against its context window. Turn **Simplify** on and keep **Limit** low, for example 10 to 20. Avoid **Return All** and **All Data** in tool nodes, because a product list with all fields can exceed the context window.
+  - Data for a new customer: `{{ $fromAI("data", "Fields of the new customer as a JSON object. AddressID is required: create the address first with the address tool and use the AddressID it returns.", "json") }}`
+  - Data for a new sales order: `{{ $fromAI("data", "Fields of the new sales order as a JSON object. OrderType and CustomerNumber are required. Positions is an array of objects with ProductNumber and Quantity.", "json") }}`
+  - Clause for Get Many sales orders: `{{ $fromAI("clause", "SQL condition on sales order fields such as BookingDate, OrderType or CustomerNumber. Write = as $EQ$, < as $LT$, > as $GT$, >= as $GT$$EQ$ and % as $P100$. Write dates as 'yyyyMMdd', for example BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'. Leave empty for no condition.", "string") }}`
+  - Filter value for Get Many sales order positions, with the filter field `ProductNumber`: `{{ $fromAI("productNumber", "Product number to find the sales order positions of", "string") }}`. The positions show in which sales orders (`OrderID`) the product was sold.
+  - Sales Order ID for an action: `{{ $fromAI("orderId", "OrderID of the sales order, not the order number. Get it with the tool for Get Many sales orders.", "number") }}`
+  - Source Order ID for Transform: `{{ $fromAI("sourceOrderId", "OrderID of the sales order to transform, not the order number", "number") }}`
+  - Position IDs for Create Purchase Order: `{{ $fromAI("positionIds", "Comma-separated OrderPosID values of the sales order positions to order, for example 5678,5679", "string") }}`
+  - Currency for Change Currency: `{{ $fromAI("currency", "Currency code set up in myfactory, for example USD", "string") }}`
+- **The agent cannot look up order types, suppliers or currencies.** The node has no resource for them. Set Target Order Type, Supplier ID and Purchase Order Type as fixed values in the tool node, or list the allowed values of your installation with their meaning in the tool description.
+- **The model does the math.** The API returns records, not totals. For a question like "What was the turnover in October?" the model reads the sales orders of that month and adds up `OrderSum` itself. Use Simplify or Fields so that it reads only the fields it needs, and set a Limit that covers the expected number of records. With too low a limit the sum is wrong without notice.
+- **Tell the agent the order of steps.** A customer needs an existing address. Give the agent a tool to create addresses and one to create customers, and say in the system message or the tool description that it must create the address first and pass the returned `AddressID` to the customer. A sales order needs an existing customer and the number of an order type of your installation. Name the order type in the tool description, because the agent cannot look it up.
+- **Keep the output small.** The tool output goes to the model as JSON and counts against its context window. Turn **Simplify** on and keep **Limit** low, for example 10 to 20. Avoid **Return All** and **All Data** in tool nodes, because a list with all fields can exceed the context window. Sales orders are large: Get, Create, Update and most sales order actions (Change Currency, Change Customer, Copy, Recalculate, Refresh Prices, Renumber Positions, Transform) return every position. Use Simplify for Get if the agent does not need the positions. For lists of sales orders, Simplify still makes the API load all details of each order, so keep the Limit small.
+- **Give Delete to an agent only with care.** If an agent must delete, require a human approval: n8n can add a [human review step](https://docs.n8n.io/build/integrate-ai/ai-examples/human-in-the-loop-for-tools) in the Tools panel of the AI Agent node, and the delete tool is attached to that step. You can also use an access point without the delete right for agent workflows. Do not give an agent a tool with **Delete Multiple** turned on.
+- **The same care applies to sales order actions with lasting effects.** Complete, Set Printed, Change Customer (the order gets a new ID), Change Currency, Refresh Prices (overwrites prices entered by hand), Create Purchase Order (orders from a supplier) and Transform (creates a follow-up document) change business data in a way that is hard to undo. Use a human review step for these tools. Check Credit only reads data.
 - **Leave On Error at its default.** With "Continue" the agent may receive an empty result instead of the error message from the API, and cannot react to it.
 
 ## Resources
