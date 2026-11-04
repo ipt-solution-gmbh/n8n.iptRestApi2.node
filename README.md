@@ -82,7 +82,7 @@ The node offers the resources Address, Customer, Product, Sales Order and Sales 
   { "AddressID": 1234 }
   ```
 
-- **Delete** (`DELETE /customers/{id}`): returns `{"deleted": true, "CustomerID": 1234}`. **Delete Multiple** works as for products and returns `CustomerIDs`. As for products, deleting is permanent and a customer that is still in use is refused with status 409 and the reason from myfactory, for example a customer that still has sales documents.
+- **Delete** (`DELETE /customers/{id}`): returns `{"deleted": true, "CustomerID": 1234}`. **Delete Multiple** works as for products and returns `CustomerIDs`. As for products, deleting is permanent and a customer that is still in use is refused with status 409 and the reason from myfactory, for example a customer that still has sales documents. If the myfactory setting to delete unused addresses is on, the address of a deleted customer is deleted too, unless another record such as a supplier or prospect still uses it. A later Delete of that address then fails with status 404.
 - **Get** and **Get Many** (`GET /customers`): **Simplify** returns `CustomerID`, `CustomerNumber`, `AddressID`, `MatchcodeAdd`, `CustomerGroup`, `CurrencyUnit`, `PaymentConditions`, `IsFreezed`, `InActive`, `ChangeDate`. Name and postal address are fields of the address (`AddressID`). Without All Data a list has the base fields `CustomerID`, `AddressID`, `CustomerNumber`, `MatchcodeAdd`. **Include** loads attributes and history.
 - **Update** (`PUT /customers/{id}`): as for products.
 

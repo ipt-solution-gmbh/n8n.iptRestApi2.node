@@ -123,7 +123,7 @@ export function getProperties(
 			displayName: 'Options',
 			name: 'options',
 			type: 'collection',
-			placeholder: 'Add Option',
+			placeholder: 'Add option',
 			displayOptions: {
 				show: {
 					resource: [info.resource],
@@ -326,7 +326,7 @@ export function getManyProperties(
 			displayName: 'Options',
 			name: 'options',
 			type: 'collection',
-			placeholder: 'Add Option',
+			placeholder: 'Add option',
 			displayOptions: {
 				show: showOnlyForGetMany,
 			},
