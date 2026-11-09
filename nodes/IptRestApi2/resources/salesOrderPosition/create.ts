@@ -21,5 +21,6 @@ export const salesOrderPositionCreateDescription: INodeProperties[] = [
 		'salesOrderPosition',
 		'Fields of the new position as a JSON object. OrderID is required: the ID of the sales order. PosType: 1 product (default, needs ProductID or ProductNumber), 2 manual position (send Name1, Quantity, Unit and Price), 3 alternative position (offers only), 4 text (Name1 up to 100 characters, long text in PosText), 5 subtotal, 6 page break, 7 group title. Other values are rejected. PosIndex inserts the position before the position at that place (0 is the first), without it the position is appended. For a product position, a sent Price or Discount wins over the price lists and is kept by price refreshes (PriceManual 0 turns this off). Without PosNumber the new position gets the number of its predecessor plus one. myfactory recalculates the sales order.',
 		'{"OrderID": 1234, "ProductNumber": "1000", "Quantity": 2}',
+		'Whether to return almost all fields of the new position instead of a few fields only. Some fields such as OrderID are missing from the response. Use Get to read them.',
 	),
 ];

@@ -4,11 +4,13 @@ import { createDataProperty } from '../../shared/write';
 // tdProducts needs these columns. If the access point has a template product, the API takes
 // every missing field except ProductID and ProductNumber from it. ProductNumber comes from the
 // number range of myfactory when it is missing. The API rejects a product group that does not
-// exist in myfactory.
+// exist in myfactory. For products the API answers a create with the sent fields and the
+// ProductID, also with alldata.
 export const productCreateDescription: INodeProperties[] = [
 	...createDataProperty(
 		'product',
 		'Fields of the new product as a JSON object. Without a template product for the access point, Matchcode, BaseUnit, BaseDecimals and ProductGroup are required. BaseUnit and ProductGroup must exist in myfactory. Without ProductNumber, myfactory assigns the next number.',
 		'{"Matchcode": "Sample product", "BaseUnit": "Stk", "BaseDecimals": 0, "ProductGroup": "Allg."}',
+		'Whether to ask for all fields of the new product. For products the API returns only the sent fields and the ProductID either way. Use Get to read all fields.',
 	),
 ];

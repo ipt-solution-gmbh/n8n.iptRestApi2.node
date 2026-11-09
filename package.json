@@ -1,5 +1,5 @@
 {
-  "name": "n8n-nodes-ipt-restapi2",
+  "name": "@ipt-solution/n8n-nodes-ipt-restapi2",
   "version": "0.1.0",
   "description": "n8n community node for ipt RestApi2, the REST interface for the myfactory ERP",
   "license": "MIT",
@@ -23,6 +23,7 @@
     "prepublishOnly": "n8n-node prerelease"
   },
   "files": ["dist"],
+  "publishConfig": { "access": "public" },
   "n8n": {
     "n8nNodesApiVersion": 1,
     "strict": true,

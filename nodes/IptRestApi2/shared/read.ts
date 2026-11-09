@@ -64,8 +64,10 @@ export function simplifyProperty(
 		this: IExecuteSingleFunctions,
 		requestOptions: IHttpRequestOptions,
 	): Promise<IHttpRequestOptions> {
-		// Get has no Fields and no All Data option, the fallbacks apply there
-		const ownFields = String(this.getNodeParameter('options.fields', ''))
+		// Get has no Fields and no All Data option, the fallbacks apply there. A $fromAI expression
+		// the AI agent left without a value resolves to undefined, which counts as empty.
+		const fieldsValue = this.getNodeParameter('options.fields', '');
+		const ownFields = (typeof fieldsValue === 'string' ? fieldsValue : '')
 			.split(',')
 			.map((field) => field.trim())
 			.filter((field) => field !== '');
@@ -169,8 +171,11 @@ function searchOptions(info: ResourceInfo, examples: GetManyExamples): INodeProp
 		this: IExecuteSingleFunctions,
 		requestOptions: IHttpRequestOptions,
 	): Promise<IHttpRequestOptions> {
-		// The API treats a present but empty clause as a condition, so an empty one is not sent
-		const clause = String(this.getNodeParameter('options.clause', '')).trim();
+		// The API treats a present but empty clause as a condition, so an empty one is not sent. A
+		// $fromAI expression the AI agent left without a value resolves to undefined, and
+		// String(undefined) would send the clause (undefined).
+		const clauseValue = this.getNodeParameter('options.clause', '');
+		const clause = typeof clauseValue === 'string' ? clauseValue.trim() : '';
 		if (clause !== '') {
 			// The API appends the clause to the filters with AND but without brackets, so an OR in
 			// the clause would otherwise cancel the filters
@@ -186,7 +191,7 @@ function searchOptions(info: ResourceInfo, examples: GetManyExamples): INodeProp
 			type: 'string',
 			default: '',
 			placeholder: examples.clause,
-			description: `SQL condition on the table columns of the ${info.labelPlural}, combined with the filters by AND. Write = as $EQ$, &lt;&gt; as $NE$, &lt; as $LT$, &gt; as $GT$, &gt;= as $GT$$EQ$, &lt;= as $LT$$EQ$, % as $P100$ and : as $2P$. Write dates as 'yyyyMMdd'. Example: BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'. Only printable ASCII (no umlauts, no line breaks) and no ; -- /* or SQL keywords such as SELECT, SET, UPDATE, CHAR or CONVERT (also inside text), otherwise the API answers with status 400. See the README for details.`,
+			description: `SQL condition on the table columns of the ${info.labelPlural}, combined with the filters by AND. Write = as $EQ$, &lt;&gt; as $NE$, &lt; as $LT$, &gt; as $GT$, &gt;= as $GT$$EQ$, &lt;= as $LT$$EQ$, % as $P100$ and : as $2P$. Write dates as 'yyyyMMdd'. Example: BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'. Only printable ASCII (no umlauts, no line breaks) and no ; -- /* or SQL keywords such as SELECT, SET, UPDATE, CHAR or CONVERT (also inside text), otherwise the API answers with status 400. Keep it under 2000 characters: instead of a long IN (...) list, filter on another field or use a range such as ${info.idField}$GT$5000 and continue with the next range. See the README for details.`,
 			routing: {
 				send: {
 					preSend: [sendClause],

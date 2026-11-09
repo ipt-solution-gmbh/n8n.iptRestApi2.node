@@ -67,14 +67,52 @@ function dataProperty(
 	];
 }
 
+// The API switches alldata on as soon as the parameter is present, even with the value false,
+// so it is only sent when All Data is on. A $fromAI expression the AI agent left without a value
+// resolves to undefined and counts as off.
+async function sendAllData(
+	this: IExecuteSingleFunctions,
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	if (this.getNodeParameter('allData', false) === true) {
+		requestOptions.qs = { ...requestOptions.qs, alldata: 'true' };
+	}
+	return requestOptions;
+}
+
 // The description names what the resource needs to create a record, for example required
-// fields. The example holds only the fields a new record needs.
+// fields. The example holds only the fields a new record needs. Without alldata the API answers
+// a create with a few fields only. allDataDescription replaces the standard text where the
+// response differs from that.
 export function createDataProperty(
 	resource: string,
 	description: string,
 	example: string,
+	allDataDescription?: string,
 ): INodeProperties[] {
-	return dataProperty(resource, 'create', description, example);
+	return [
+		...dataProperty(resource, 'create', description, example),
+		{
+			displayName: 'All Data',
+			name: 'allData',
+			type: 'boolean',
+			displayOptions: {
+				show: {
+					resource: [resource],
+					operation: ['create'],
+				},
+			},
+			default: false,
+			description:
+				allDataDescription ??
+				'Whether to return all fields of the new record instead of a few fields only',
+			routing: {
+				send: {
+					preSend: [sendAllData],
+				},
+			},
+		},
+	];
 }
 
 // The note explains rules of the resource that go beyond changing single fields

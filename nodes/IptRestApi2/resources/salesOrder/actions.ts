@@ -170,14 +170,17 @@ function bodySwitch(displayName: string, name: string, description: string): INo
 }
 
 // A number in Additional Fields that goes into the request body. 0 is not sent, because the API
-// takes a missing field from the source order but would use a sent 0 as the new value.
+// takes a missing field from the source order but would use a sent 0 as the new value. A missing
+// or non-numeric value is treated like 0, because an expression such as $fromAI without a value
+// resolves to undefined and would otherwise be sent as null.
 function bodyNumber(displayName: string, name: string, description: string): INodeProperties {
 	async function sendUnlessZero(
 		this: IExecuteSingleFunctions,
 		requestOptions: IHttpRequestOptions,
 	): Promise<IHttpRequestOptions> {
-		const value = Number(this.getNodeParameter(`additionalFields.${name}`, 0));
-		if (value !== 0) {
+		const raw = this.getNodeParameter(`additionalFields.${name}`, 0);
+		const value = typeof raw === 'number' ? raw : Number(raw);
+		if (Number.isFinite(value) && value !== 0) {
 			requestOptions.body = { ...(requestOptions.body as IDataObject), [name]: value };
 		}
 		return requestOptions;
@@ -224,7 +227,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 	),
 	actionNotice(
 		'changeCustomer',
-		'myfactory copies the sales order to the new customer and deletes the old one. The order keeps its number but gets a new OrderID, the old OrderID no longer exists. Only offers can be moved to a prospect instead of a customer.',
+		'myfactory copies the sales order to the new customer and deletes the old one. The order keeps its number but gets a new OrderID, and the old OrderID no longer exists. The addresses and the taxation always come from the new customer. With Change Conditions on (default), the order also takes over the currency and price type of the new customer and the position prices are determined again. Only offers can be moved to a prospect instead of a customer.',
 	),
 	actionNotice(
 		'checkCredit',
@@ -340,7 +343,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 				...bodySwitch(
 					'Change Conditions',
 					'changeConditions',
-					'Whether to take over the conditions of the new customer',
+					'Whether to take over the currency and price type of the new customer and determine the position prices again. Off keeps the currency, prices and payment condition of the order.',
 				),
 				default: true,
 			},
@@ -348,7 +351,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 				...bodySwitch(
 					'Keep Credit Card',
 					'keepCreditCard',
-					'Whether to keep the credit card data of the sales order',
+					'Whether to keep the credit card data of the sales order. Only has an effect when Change Conditions is off.',
 				),
 				default: true,
 			},

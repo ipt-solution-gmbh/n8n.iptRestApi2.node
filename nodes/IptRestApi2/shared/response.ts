@@ -30,8 +30,15 @@ export async function throwOnApiError(
 		.map((apiError) => apiError.Message)
 		.filter(Boolean)
 		.join(' | ');
+	// The API answers filters or a clause that SQL Server rejects with status 400 and the database
+	// message, which alone does not say how to fix the request
+	const clauseHint =
+		response.statusCode === 400 && message.startsWith('Filter produced invalid SQL')
+			? "Check Filters and Clause: use column names of the table. In the Clause write $EQ$ instead of =, text in single quotes, dates as 'yyyyMMdd' and no long IN lists."
+			: undefined;
 	throw new NodeApiError(this.getNode(), body as JsonObject, {
 		message: message || undefined,
+		description: clauseHint,
 		httpCode: String(response.statusCode),
 	});
 }
