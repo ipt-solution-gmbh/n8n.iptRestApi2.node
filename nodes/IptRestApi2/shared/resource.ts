@@ -10,7 +10,7 @@ export interface ResourceInfo {
 	label: string;
 	// Name of several records in texts, for example "sales orders"
 	labelPlural: string;
-	// Parameter that holds the record ID, for example "orderId"
+	// Parameter that holds the record ID, for example "salesOrderId"
 	idParameter: string;
 	// Display name of that parameter, for example "Sales Order ID"
 	idDisplayName: string;

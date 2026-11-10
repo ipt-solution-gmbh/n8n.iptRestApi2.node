@@ -8,7 +8,7 @@ export const salesOrderInfo: ResourceInfo = {
 	path: '/salesorders',
 	label: 'sales order',
 	labelPlural: 'sales orders',
-	idParameter: 'orderId',
+	idParameter: 'salesOrderId',
 	idDisplayName: 'Sales Order ID',
 	idField: 'OrderID',
 };
