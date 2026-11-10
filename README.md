@@ -37,6 +37,12 @@ The node offers the resources Address, Customer, Product, Sales Order and Sales 
     ```
 
   - Above Data, a notice shows a minimal example for Create and an example for Update of each resource.
+  - **Fields** below Data lets you pick single fields and enter their values, as an alternative or in addition to Data. Create and Update of every resource have it.
+    - The list starts empty. Add each field you need with **Add field to send**. The node loads the field list from `openapi.json` of your installation, so it matches its version.
+    - Data is the base of the request body. A field set in Fields replaces the same field from Data.
+    - Empty fields are not sent. A field set to `false` or `0` is sent. To clear a field on purpose, use Data, for example `{"Name2": ""}`.
+    - An added field of type date, list or boolean with a fixed empty value stops n8n before the workflow starts, for example "'ValidTo' expects a dateTime but we got ''". Remove fields you do not need instead of leaving them empty. An expression that resolves to an empty value is not sent, like an empty field.
+    - For Update the field list leaves out the ID field of the record, because the ID comes from its own parameter. Lists such as sales order positions are not part of the field list, use Data for them.
   - **All Data** (off by default) exists for Create of every resource. When it is off, the parameter is not sent and the response has only a few fields. Turn it on to get the full record: the node then sends `alldata=true` and the API returns all fields of the new record. For products the API returns only the sent fields and the `ProductID`, with or without All Data. Use Get to read all fields of the new product.
 
 - **Delete:** delete a product by its numeric ID (`DELETE /products/{id}`). Returns one item `{"deleted": true, "ProductID": 1234}`.
@@ -61,6 +67,7 @@ The node offers the resources Address, Customer, Product, Sales Order and Sales 
   - **Options > Filters** and **Options > Clause** search the list, see [All resources](#all-resources).
 - **Update:** change a product by its numeric ID (`PUT /products/{id}`).
   - **Data** holds the fields to change as a JSON object, for example `{"Matchcode": "New name"}`. Fields that are not listed stay unchanged.
+  - **Fields** works as for Create.
   - Installations that require an `If-Match` header for every write are not supported yet. There the API rejects the update with status 428.
 
 **Address**
@@ -224,6 +231,7 @@ The node can be attached to an AI Agent node as a tool.
 - **Tool description.** By default n8n builds the description from the action, for example "Get many products from myfactory in ipt RestApi2". The descriptions of operations and parameters are not passed to the model. Set the tool description manually and say what the tool returns and when to use it, for example: "Searches products in the myfactory ERP. Returns product number, matchcode, name and product group."
 - **Let the model fill parameters with `$fromAI`.**
   - Product ID: `{{ $fromAI("productId", "Numeric ProductID of the product", "number") }}`
+  - For agents, Data with a single `$fromAI` is the simple way to write records. Fields is meant for setting up the node in the editor.
   - Data: `{{ $fromAI("data", "Fields to write as a JSON object. Use myfactory field names such as Matchcode, Name1, BaseUnit or ProductGroup. A new product needs Matchcode, BaseUnit, BaseDecimals and ProductGroup.", "json") }}`
   - Data for a new customer: `{{ $fromAI("data", "Fields of the new customer as a JSON object. AddressID is required: create the address first with the address tool and use the AddressID it returns.", "json") }}`
   - Data for a new sales order: `{{ $fromAI("data", "Fields of the new sales order as a JSON object. OrderType and CustomerNumber are required. Positions is an array of objects with ProductNumber and Quantity.", "json") }}`

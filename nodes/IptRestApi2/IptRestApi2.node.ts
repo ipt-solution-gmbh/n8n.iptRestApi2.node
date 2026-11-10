@@ -1,11 +1,30 @@
 import { NodeConnectionTypes, type INodeType, type INodeTypeDescription } from 'n8n-workflow';
 import { addressDescription } from './resources/address';
+import { addressInfo } from './resources/address/get';
 import { customerDescription } from './resources/customer';
+import { customerInfo } from './resources/customer/get';
 import { productDescription } from './resources/product';
+import { productInfo } from './resources/product/get';
 import { salesOrderDescription } from './resources/salesOrder';
+import { salesOrderInfo } from './resources/salesOrder/get';
 import { salesOrderPositionDescription } from './resources/salesOrderPosition';
+import { salesOrderPositionInfo } from './resources/salesOrderPosition/get';
+import { writeFieldsLoader } from './shared/write';
 
 export class IptRestApi2 implements INodeType {
+	// The Fields parameter of Create and Update loads its field list here
+	methods = {
+		resourceMapping: {
+			getWriteFields: writeFieldsLoader([
+				addressInfo,
+				customerInfo,
+				productInfo,
+				salesOrderInfo,
+				salesOrderPositionInfo,
+			]),
+		},
+	};
+
 	description: INodeTypeDescription = {
 		displayName: 'ipt RestApi2',
 		name: 'iptRestApi2',
