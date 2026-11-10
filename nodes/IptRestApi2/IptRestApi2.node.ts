@@ -5,10 +5,17 @@ import { customerDescription } from './resources/customer';
 import { customerInfo } from './resources/customer/get';
 import { productDescription } from './resources/product';
 import { productInfo } from './resources/product/get';
+import { purchaseOrderDescription } from './resources/purchaseOrder';
+import { purchaseOrderInfo } from './resources/purchaseOrder/get';
+import { purchaseOrderPositionDescription } from './resources/purchaseOrderPosition';
+import { purchaseOrderPositionInfo } from './resources/purchaseOrderPosition/get';
 import { salesOrderDescription } from './resources/salesOrder';
 import { salesOrderInfo } from './resources/salesOrder/get';
 import { salesOrderPositionDescription } from './resources/salesOrderPosition';
 import { salesOrderPositionInfo } from './resources/salesOrderPosition/get';
+import { supplierDescription } from './resources/supplier';
+import { supplierInfo } from './resources/supplier/get';
+import { tableDataDescription } from './resources/tableData';
 import { writeFieldsLoader } from './shared/write';
 
 export class IptRestApi2 implements INodeType {
@@ -19,8 +26,11 @@ export class IptRestApi2 implements INodeType {
 				addressInfo,
 				customerInfo,
 				productInfo,
+				purchaseOrderInfo,
+				purchaseOrderPositionInfo,
 				salesOrderInfo,
 				salesOrderPositionInfo,
+				supplierInfo,
 			]),
 		},
 	};
@@ -67,12 +77,28 @@ export class IptRestApi2 implements INodeType {
 						value: 'product',
 					},
 					{
+						name: 'Purchase Order',
+						value: 'purchaseOrder',
+					},
+					{
+						name: 'Purchase Order Position',
+						value: 'purchaseOrderPosition',
+					},
+					{
 						name: 'Sales Order',
 						value: 'salesOrder',
 					},
 					{
 						name: 'Sales Order Position',
 						value: 'salesOrderPosition',
+					},
+					{
+						name: 'Supplier',
+						value: 'supplier',
+					},
+					{
+						name: 'Table Data',
+						value: 'tableData',
 					},
 				],
 				// Product stays the default, because a node without a stored resource falls back to it
@@ -81,8 +107,12 @@ export class IptRestApi2 implements INodeType {
 			...addressDescription,
 			...customerDescription,
 			...productDescription,
+			...purchaseOrderDescription,
+			...purchaseOrderPositionDescription,
 			...salesOrderDescription,
 			...salesOrderPositionDescription,
+			...supplierDescription,
+			...tableDataDescription,
 		],
 	};
 }

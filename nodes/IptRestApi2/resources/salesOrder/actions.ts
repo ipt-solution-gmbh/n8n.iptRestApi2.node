@@ -6,12 +6,20 @@ import {
 	type INodeProperties,
 	type INodePropertyOptions,
 } from 'n8n-workflow';
+import {
+	actionNotice,
+	bodyNumber,
+	bodySwitch,
+	changeCurrencyProperties,
+	recordAction,
+	showFor,
+	transformOperation,
+	transformProperties,
+} from '../../shared/actions';
 import { idProperty } from '../../shared/resource';
-import { baseItemsOutput, resultOutput } from '../../shared/response';
 import { salesOrderInfo } from './get';
 
-// Actions of the API on one sales order: POST /salesorders/{id}/<action>. Each answers with one
-// object in Result, either the changed sales order or a short result.
+// Actions of the API on one sales order: POST /salesorders/{id}/<action>
 function orderAction(
 	name: string,
 	value: string,
@@ -19,25 +27,7 @@ function orderAction(
 	description: string,
 	apiAction: string,
 ): INodePropertyOptions {
-	return {
-		name,
-		value,
-		action,
-		description,
-		routing: {
-			request: {
-				method: 'POST',
-				url: `=/salesorders/{{encodeURIComponent($parameter.orderId)}}/${apiAction}`,
-				// The API rejects a body that is not declared as JSON. Actions without parameters
-				// ignore the body.
-				headers: { 'Content-Type': 'application/json' },
-				ignoreHttpStatusErrors: true,
-			},
-			output: {
-				postReceive: resultOutput,
-			},
-		},
-	};
+	return recordAction(salesOrderInfo, name, value, action, description, apiAction);
 }
 
 export const salesOrderActionOperations: INodePropertyOptions[] = [
@@ -111,90 +101,18 @@ export const salesOrderActionOperations: INodePropertyOptions[] = [
 		'Mark a processed sales order as printed without printing or sending it',
 		'setprinted',
 	),
-	{
-		name: 'Transform',
-		value: 'transform',
-		action: 'Transform a sales order into another order type in myfactory',
-		description:
-			'Create the follow-up document of a sales order, for example a delivery note from an order confirmation',
-		routing: {
-			request: {
-				method: 'POST',
-				// The API takes the source order and the target type from the query
-				url: '/salesorders/transform',
-				ignoreHttpStatusErrors: true,
-			},
-			output: {
-				postReceive: baseItemsOutput,
-			},
-		},
-	},
+	transformOperation(
+		salesOrderInfo,
+		'Transform a sales order into another order type in myfactory',
+		'Create the follow-up document of a sales order, for example a delivery note from an order confirmation',
+	),
 ];
 
-// Shows a parameter for one action of sales orders
-function showFor(operation: string) {
-	return {
-		show: {
-			resource: ['salesOrder'],
-			operation: [operation],
-		},
-	};
-}
-
-// A notice at the top of one action that says what the action changes in myfactory
-function actionNotice(operation: string, text: string): INodeProperties {
-	return {
-		displayName: text,
-		name: `${operation}Notice`,
-		type: 'notice',
-		displayOptions: showFor(operation),
-		default: '',
-	};
-}
+const resource = salesOrderInfo.resource;
 
 // The API expects the OrderID, which users easily confuse with the visible order number
 const orderIdHint =
 	'OrderID of the sales order, not the order number. Get it from Sales Order > Get Many.';
-
-// A switch in Additional Fields that goes into the request body. Switches that the API turns on
-// by default override the default with true.
-function bodySwitch(displayName: string, name: string, description: string): INodeProperties {
-	return {
-		displayName,
-		name,
-		type: 'boolean',
-		default: false,
-		description,
-		routing: { send: { type: 'body', property: name } },
-	};
-}
-
-// A number in Additional Fields that goes into the request body. 0 is not sent, because the API
-// takes a missing field from the source order but would use a sent 0 as the new value. A missing
-// or non-numeric value is treated like 0, because an expression such as $fromAI without a value
-// resolves to undefined and would otherwise be sent as null.
-function bodyNumber(displayName: string, name: string, description: string): INodeProperties {
-	async function sendUnlessZero(
-		this: IExecuteSingleFunctions,
-		requestOptions: IHttpRequestOptions,
-	): Promise<IHttpRequestOptions> {
-		const raw = this.getNodeParameter(`additionalFields.${name}`, 0);
-		const value = typeof raw === 'number' ? raw : Number(raw);
-		if (Number.isFinite(value) && value !== 0) {
-			requestOptions.body = { ...(requestOptions.body as IDataObject), [name]: value };
-		}
-		return requestOptions;
-	}
-
-	return {
-		displayName,
-		name,
-		type: 'number',
-		default: 0,
-		description: `${description}. 0 is not sent.`,
-		routing: { send: { preSend: [sendUnlessZero] } },
-	};
-}
 
 // The API expects the positions as an array of numbers. The node takes a comma-separated list,
 // which is easier to fill from an expression or by an AI agent.
@@ -222,46 +140,57 @@ async function sendPositionIds(
 
 export const salesOrderActionDescription: INodeProperties[] = [
 	actionNotice(
+		resource,
 		'changeCurrency',
 		'Switches the sales order to another currency and converts the prices of its positions. Use a currency code that is set up in myfactory, because neither the API nor myfactory rejects an unknown code.',
 	),
 	actionNotice(
+		resource,
 		'changeCustomer',
 		'myfactory copies the sales order to the new customer and deletes the old one. The order keeps its number but gets a new OrderID, and the old OrderID no longer exists. The addresses and the taxation always come from the new customer. With Change Conditions on (default), the order also takes over the currency and price type of the new customer and the position prices are determined again. Only offers can be moved to a prospect instead of a customer.',
 	),
 	actionNotice(
+		resource,
 		'checkCredit',
 		'Checks whether the sales order fits into the credit limit of the customer. Changes nothing. Fails for a sales order without a customer.',
 	),
 	actionNotice(
+		resource,
 		'complete',
 		'Marks the sales order and its main positions as completed and removes their product planning entries. Works only for processed or printed sales orders. If myfactory refuses, the API reports only a general error (status 409).',
 	),
 	actionNotice(
+		resource,
 		'copy',
 		'Creates a new sales order as a copy. Without Additional Fields the copy gets the customer and the order type of the source.',
 	),
 	actionNotice(
+		resource,
 		'createPurchaseOrder',
 		'Creates a purchase order at the supplier for the given positions. Supplier ID and purchase order type are values of your myfactory installation.',
 	),
 	actionNotice(
+		resource,
 		'recalc',
 		'Recalculates the totals, taxes and position sums of the sales order, as after a change to a position.',
 	),
 	actionNotice(
+		resource,
 		'refreshPrices',
 		'Takes the current prices from the price lists. This also overwrites prices entered by hand, unless myfactory is set up to keep fixed prices. At least one of Refresh Sales Prices and Refresh Valuation Prices must be on, otherwise the API answers with status 400.',
 	),
 	actionNotice(
+		resource,
 		'renumberPositions',
 		'Numbers the positions again in their order: 1, 2, 3 …, group titles open a level (1, 1.1), text and page break lines get no number. The order of the positions does not change. Needs ipt RestApi2 57.9.0 or later.',
 	),
 	actionNotice(
+		resource,
 		'setPrinted',
 		'Marks a processed sales order as printed and checks off its open entries in print batches. Nothing is printed or sent. A sales order that is already printed is returned unchanged. Use this for documents that reach the recipient by other means. Changing OrderState with Update does not do this.',
 	),
 	actionNotice(
+		resource,
 		'transform',
 		'Creates the follow-up document, for example a delivery note from an order confirmation. The target order type must be allowed as a follow-up of the source order type in myfactory, otherwise the error message lists the allowed types. Fails if the source sales order is locked for transforming or has no positions left to take over.',
 	),
@@ -287,36 +216,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 	},
 
 	// Change Currency
-	{
-		displayName: 'Currency',
-		name: 'currency',
-		type: 'string',
-		required: true,
-		displayOptions: showFor('changeCurrency'),
-		default: '',
-		placeholder: 'USD',
-		description:
-			'Code of a currency set up in myfactory to switch the sales order to. The API does not check the code.',
-		routing: { send: { type: 'body', property: 'currency' } },
-	},
-	{
-		displayName: 'Additional Fields',
-		name: 'additionalFields',
-		type: 'collection',
-		placeholder: 'Add Field',
-		displayOptions: showFor('changeCurrency'),
-		default: {},
-		options: [
-			{
-				displayName: 'Exchange Rate',
-				name: 'rate',
-				type: 'number',
-				default: 0,
-				description: 'Fixed exchange rate. 0 uses the daily rate set up in myfactory.',
-				routing: { send: { type: 'body', property: 'rate' } },
-			},
-		],
-	},
+	...changeCurrencyProperties(salesOrderInfo),
 
 	// Change Customer
 	{
@@ -325,7 +225,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 		name: 'newCustomerId',
 		type: 'number',
 		required: true,
-		displayOptions: showFor('changeCustomer'),
+		displayOptions: showFor(resource, 'changeCustomer'),
 		default: 0,
 		description:
 			'ID of the new customer (field CustomerID). For an offer to a prospect, use 0 and set Prospect ID.',
@@ -336,7 +236,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 		name: 'additionalFields',
 		type: 'collection',
 		placeholder: 'Add Field',
-		displayOptions: showFor('changeCustomer'),
+		displayOptions: showFor(resource, 'changeCustomer'),
 		default: {},
 		options: [
 			{
@@ -378,7 +278,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 		name: 'additionalFields',
 		type: 'collection',
 		placeholder: 'Add Field',
-		displayOptions: showFor('copy'),
+		displayOptions: showFor(resource, 'copy'),
 		default: {},
 		// Without these fields the copy gets the customer, prospect and order type of the source
 		options: [
@@ -422,7 +322,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 		name: 'supplierId',
 		type: 'number',
 		required: true,
-		displayOptions: showFor('createPurchaseOrder'),
+		displayOptions: showFor(resource, 'createPurchaseOrder'),
 		default: 0,
 		description: 'ID of the supplier of the purchase order (field SupplierID)',
 		routing: { send: { type: 'body', property: 'supplierId' } },
@@ -432,7 +332,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 		name: 'positionIds',
 		type: 'string',
 		required: true,
-		displayOptions: showFor('createPurchaseOrder'),
+		displayOptions: showFor(resource, 'createPurchaseOrder'),
 		default: '',
 		placeholder: '5678,5679',
 		description:
@@ -443,7 +343,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 		displayName: 'Purchase Order Type',
 		name: 'purchaseOrderType',
 		type: 'number',
-		displayOptions: showFor('createPurchaseOrder'),
+		displayOptions: showFor(resource, 'createPurchaseOrder'),
 		default: 0,
 		description:
 			'Number of the purchase order type. 0 uses the type preset in myfactory. Without a preset the API rejects the request.',
@@ -454,7 +354,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 		name: 'additionalFields',
 		type: 'collection',
 		placeholder: 'Add Field',
-		displayOptions: showFor('createPurchaseOrder'),
+		displayOptions: showFor(resource, 'createPurchaseOrder'),
 		default: {},
 		options: [
 			{
@@ -490,7 +390,7 @@ export const salesOrderActionDescription: INodeProperties[] = [
 		name: 'additionalFields',
 		type: 'collection',
 		placeholder: 'Add Field',
-		displayOptions: showFor('refreshPrices'),
+		displayOptions: showFor(resource, 'refreshPrices'),
 		default: {},
 		options: [
 			{
@@ -510,46 +410,9 @@ export const salesOrderActionDescription: INodeProperties[] = [
 	},
 
 	// Transform
-	{
-		displayName: 'Source Order ID',
-		name: 'sourceOrderId',
-		type: 'string',
-		required: true,
-		displayOptions: showFor('transform'),
-		default: '',
-		placeholder: '1234',
-		description: 'Numeric ID of the sales order to transform (field OrderID)',
-		hint: orderIdHint,
-		routing: { send: { type: 'query', property: 'sourceorderid' } },
-	},
-	{
-		displayName: 'Target Order Type',
-		name: 'targetOrderType',
-		type: 'number',
-		required: true,
-		displayOptions: showFor('transform'),
-		default: 0,
-		description:
-			'Number of the order type of the new document, usually 3 for a delivery note. The numbers are set up in your myfactory installation. The type must be a follow-up type of the source order type in myfactory. If it is not, the error message of the API lists the allowed types.',
-		routing: { send: { type: 'query', property: 'targetordertype' } },
-	},
-	{
-		displayName: 'Additional Fields',
-		name: 'additionalFields',
-		type: 'collection',
-		placeholder: 'Add Field',
-		displayOptions: showFor('transform'),
-		default: {},
-		options: [
-			{
-				displayName: 'Full Copy',
-				name: 'fullCopy',
-				type: 'boolean',
-				default: false,
-				description:
-					'Whether to take over all positions instead of only the positions that are still open',
-				routing: { send: { type: 'query', property: 'fullcopy' } },
-			},
-		],
-	},
+	...transformProperties(
+		salesOrderInfo,
+		orderIdHint,
+		'Number of the order type of the new document, usually 3 for a delivery note. The numbers are set up in your myfactory installation. The type must be a follow-up type of the source order type in myfactory. If it is not, the error message of the API lists the allowed types.',
+	),
 ];

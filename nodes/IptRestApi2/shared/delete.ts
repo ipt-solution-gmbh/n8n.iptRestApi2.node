@@ -129,9 +129,9 @@ export function deleteProperties(
 }
 
 // The API answers with the deleted records as they were before the delete, in Result. One short
-// item confirms the delete instead, so a tool call does not return whole records. The sales
-// order and sales order position endpoints answer without Result, there the ID comes from the
-// parameter.
+// item confirms the delete instead, so a tool call does not return whole records. The endpoints
+// of sales and purchase orders and their positions answer without Result, there the ID comes from
+// the parameter.
 export function deletedOutput(info: ResourceInfo): PostReceiveAction {
 	return async function (
 		this: IExecuteSingleFunctions,

@@ -147,8 +147,47 @@ export interface GetManyExamples {
 	clause: string;
 }
 
-// The search options of Get Many. Filters and Clause go into the query of every page request,
-// because the pagination only changes the URL (see Return All).
+async function sendClause(
+	this: IExecuteSingleFunctions,
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	// The API treats a present but empty clause as a condition, so an empty one is not sent. A
+	// $fromAI expression the AI agent left without a value resolves to undefined, and
+	// String(undefined) would send the clause (undefined).
+	const clauseValue = this.getNodeParameter('options.clause', '');
+	const clause = typeof clauseValue === 'string' ? clauseValue.trim() : '';
+	if (clause !== '') {
+		// The API appends the clause to the filters with AND but without brackets, so an OR in
+		// the clause would otherwise cancel the filters
+		requestOptions.qs = { ...requestOptions.qs, clause: `(${clause})` };
+	}
+	return requestOptions;
+}
+
+// The Clause option of a list. The condition sentence says what the clause works on, the rest of
+// the description is the syntax the API accepts. The clause goes into the query of every page
+// request, because the pagination only changes the URL (see Return All).
+export function clauseOption(
+	condition: string,
+	rangeField: string,
+	placeholder: string,
+): INodeProperties {
+	return {
+		displayName: 'Clause',
+		name: 'clause',
+		type: 'string',
+		default: '',
+		placeholder,
+		description: `${condition} Write = as $EQ$, &lt;&gt; as $NE$, &lt; as $LT$, &gt; as $GT$, &gt;= as $GT$$EQ$, &lt;= as $LT$$EQ$, % as $P100$ and : as $2P$. Write dates as 'yyyyMMdd'. Example: BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'. Only printable ASCII (no umlauts, no line breaks) and no ; -- /* or SQL keywords such as SELECT, SET, UPDATE, CHAR or CONVERT (also inside text), otherwise the API answers with status 400. Keep it under 2000 characters: instead of a long IN (...) list, filter on another field or use a range such as ${rangeField}$GT$5000 and continue with the next range. See the README for details.`,
+		routing: {
+			send: {
+				preSend: [sendClause],
+			},
+		},
+	};
+}
+
+// The search options of Get Many. Filters go into the query of every page request, like Clause.
 function searchOptions(info: ResourceInfo, examples: GetManyExamples): INodeProperties[] {
 	async function sendFilters(
 		this: IExecuteSingleFunctions,
@@ -167,37 +206,12 @@ function searchOptions(info: ResourceInfo, examples: GetManyExamples): INodeProp
 		return requestOptions;
 	}
 
-	async function sendClause(
-		this: IExecuteSingleFunctions,
-		requestOptions: IHttpRequestOptions,
-	): Promise<IHttpRequestOptions> {
-		// The API treats a present but empty clause as a condition, so an empty one is not sent. A
-		// $fromAI expression the AI agent left without a value resolves to undefined, and
-		// String(undefined) would send the clause (undefined).
-		const clauseValue = this.getNodeParameter('options.clause', '');
-		const clause = typeof clauseValue === 'string' ? clauseValue.trim() : '';
-		if (clause !== '') {
-			// The API appends the clause to the filters with AND but without brackets, so an OR in
-			// the clause would otherwise cancel the filters
-			requestOptions.qs = { ...requestOptions.qs, clause: `(${clause})` };
-		}
-		return requestOptions;
-	}
-
 	return [
-		{
-			displayName: 'Clause',
-			name: 'clause',
-			type: 'string',
-			default: '',
-			placeholder: examples.clause,
-			description: `SQL condition on the table columns of the ${info.labelPlural}, combined with the filters by AND. Write = as $EQ$, &lt;&gt; as $NE$, &lt; as $LT$, &gt; as $GT$, &gt;= as $GT$$EQ$, &lt;= as $LT$$EQ$, % as $P100$ and : as $2P$. Write dates as 'yyyyMMdd'. Example: BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'. Only printable ASCII (no umlauts, no line breaks) and no ; -- /* or SQL keywords such as SELECT, SET, UPDATE, CHAR or CONVERT (also inside text), otherwise the API answers with status 400. Keep it under 2000 characters: instead of a long IN (...) list, filter on another field or use a range such as ${info.idField}$GT$5000 and continue with the next range. See the README for details.`,
-			routing: {
-				send: {
-					preSend: [sendClause],
-				},
-			},
-		},
+		clauseOption(
+			`SQL condition on the table columns of the ${info.labelPlural}, combined with the filters by AND.`,
+			info.idField,
+			examples.clause,
+		),
 		{
 			displayName: 'Filters',
 			name: 'filters',
@@ -218,42 +232,12 @@ function searchOptions(info: ResourceInfo, examples: GetManyExamples): INodeProp
 	];
 }
 
-// Parameters of Get Many. A resource without additional data passes no includes.
-export function getManyProperties(
-	info: ResourceInfo,
-	simplifiedFields: string[],
-	includes: INodePropertyOptions[],
-	examples: GetManyExamples,
-): INodeProperties[] {
+// Return All and Limit of a list. Both send the page size, Return All also reads every page.
+export function paginationProperties(resource: string): INodeProperties[] {
 	const showOnlyForGetMany = {
 		operation: ['getAll'],
-		resource: [info.resource],
+		resource: [resource],
 	};
-	const sortOption: INodeProperties = {
-		displayName: 'Sort',
-		name: 'sort',
-		type: 'string',
-		default: '',
-		placeholder: examples.sort,
-		description:
-			'Comma-separated list of fields to sort by. A leading minus sorts in descending order.',
-		routing: {
-			send: {
-				type: 'query',
-				property: 'sort',
-			},
-		},
-	};
-	const options = [
-		allDataOption,
-		fieldsOption(examples.fields),
-		sortOption,
-		...searchOptions(info, examples),
-	];
-	if (includes.length > 0) {
-		options.push(includeOption(includes));
-	}
-
 	return [
 		{
 			displayName: 'Return All',
@@ -316,6 +300,47 @@ export function getManyProperties(
 			},
 			description: 'Max number of results to return',
 		},
+	];
+}
+
+// Parameters of Get Many. A resource without additional data passes no includes.
+export function getManyProperties(
+	info: ResourceInfo,
+	simplifiedFields: string[],
+	includes: INodePropertyOptions[],
+	examples: GetManyExamples,
+): INodeProperties[] {
+	const showOnlyForGetMany = {
+		operation: ['getAll'],
+		resource: [info.resource],
+	};
+	const sortOption: INodeProperties = {
+		displayName: 'Sort',
+		name: 'sort',
+		type: 'string',
+		default: '',
+		placeholder: examples.sort,
+		description:
+			'Comma-separated list of fields to sort by. A leading minus sorts in descending order.',
+		routing: {
+			send: {
+				type: 'query',
+				property: 'sort',
+			},
+		},
+	};
+	const options = [
+		allDataOption,
+		fieldsOption(examples.fields),
+		sortOption,
+		...searchOptions(info, examples),
+	];
+	if (includes.length > 0) {
+		options.push(includeOption(includes));
+	}
+
+	return [
+		...paginationProperties(info.resource),
 		simplifyProperty(info.resource, 'getAll', simplifiedFields),
 		{
 			displayName:

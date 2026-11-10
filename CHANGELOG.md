@@ -22,6 +22,11 @@
 - If the API rejects filters or a clause as invalid SQL, the error description says how to write the clause.
 - Clause, Fields and the number fields of the sales order actions filled by an AI agent with `$fromAI` count as empty when the model leaves them out, so the node sends no condition, field list or number.
 - Option All Data for Create of every resource, off by default. When it is on, the node sends `alldata=true`, so the API returns all fields of the new record. For products the API returns only the sent fields and the ProductID either way.
+- Parameter Fields for Create and Update of every resource. It lets you pick single fields and enter their values. The field list is loaded from `openapi.json` of the installation. Data is the base of the request body and a field set in Fields replaces the same field from Data. Empty fields are not sent. For Update the list leaves out the ID field of the record.
+- Resource Table Data with the operation Get Many. It reads the rows of any table or view of the client database (`GET /tabledatas`) and returns one item per row. Options Clause and Fields. The API key needs the read right `TableDatas` if rights are set for the access point.
+- Resource Supplier with the operations Create, Delete (also Delete Multiple), Get, Get Many and Update.
+- Resources Purchase Order and Purchase Order Position with the operations Create, Delete, Get, Get Many and Update. Purchase orders take their positions in the array Positions of Data, and Create returns the new purchase order with its positions.
+- Purchase order actions Change Currency, Change Supplier, Confirm Delivery Dates, Copy, Recalculate, Refresh Prices, Renumber Positions, Set Completed, Set Printed and Transform, each with a notice that says what it changes in myfactory.
 - MIT license file.
 - README section on Custom API Call with the HTTP Request node and this credential.
 

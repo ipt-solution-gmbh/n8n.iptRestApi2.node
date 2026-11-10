@@ -259,6 +259,32 @@ export function createDataProperty(
 	];
 }
 
+// For documents with positions such as sales and purchase orders. Without query parameters the
+// API answers a create like a list request: only the base fields and no positions. positions is
+// always sent, so the response always has the positions. All Data (alldata) adds the remaining
+// header fields. The API checks only that the parameters are present.
+export function returnPositionsProperty(resource: string): INodeProperties {
+	return {
+		displayName: 'Return Positions',
+		name: `${resource}CreateQuery`,
+		type: 'hidden',
+		displayOptions: {
+			show: {
+				resource: [resource],
+				operation: ['create'],
+			},
+		},
+		default: '',
+		routing: {
+			request: {
+				qs: {
+					positions: 'true',
+				},
+			},
+		},
+	};
+}
+
 // The note explains rules of the resource that go beyond changing single fields
 export function updateDataProperty(
 	resource: string,
