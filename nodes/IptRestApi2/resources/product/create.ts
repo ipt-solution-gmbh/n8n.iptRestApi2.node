@@ -1,7 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 import { createDataProperty } from '../../shared/write';
 
-// tdProducts needs these columns. If the access point has a template product, the API takes
+// A product requires these fields. If the access point has a template product, the API takes
 // every missing field except ProductID and ProductNumber from it. ProductNumber comes from the
 // number range of myfactory when it is missing. The API rejects a product group that does not
 // exist in myfactory. For products the API answers a create with the sent fields and the

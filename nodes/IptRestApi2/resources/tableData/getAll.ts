@@ -20,9 +20,8 @@ async function sendFields(
 	return requestOptions;
 }
 
-// The endpoint reads any table or view, so the API knows no column types and no model. Sort is
-// checked against the model and fails for every column, and filters are not converted by column
-// type. Only Clause and Fields work as on the other resources.
+// The endpoint reads any table or view, so Sort is rejected for every column and filters are not
+// converted by column type. Only Clause and Fields work as on the other resources.
 export const tableDataGetManyDescription: INodeProperties[] = [
 	{
 		displayName:

@@ -1,6 +1,8 @@
 import { NodeConnectionTypes, type INodeType, type INodeTypeDescription } from 'n8n-workflow';
 import { addressDescription } from './resources/address';
 import { addressInfo } from './resources/address/get';
+import { contactDescription } from './resources/contact';
+import { contactInfo } from './resources/contact/get';
 import { customerDescription } from './resources/customer';
 import { customerInfo } from './resources/customer/get';
 import { productDescription } from './resources/product';
@@ -15,6 +17,11 @@ import { salesOrderPositionDescription } from './resources/salesOrderPosition';
 import { salesOrderPositionInfo } from './resources/salesOrderPosition/get';
 import { supplierDescription } from './resources/supplier';
 import { supplierInfo } from './resources/supplier/get';
+import { supportCaseDescription } from './resources/supportCase';
+import { supportCaseInfo } from './resources/supportCase/get';
+import { supportCasePositionDescription } from './resources/supportCasePosition';
+import { supportCasePositionInfo } from './resources/supportCasePosition/get';
+import { supportMailDescription } from './resources/supportMail';
 import { tableDataDescription } from './resources/tableData';
 import { writeFieldsLoader } from './shared/write';
 
@@ -24,6 +31,7 @@ export class IptRestApi2 implements INodeType {
 		resourceMapping: {
 			getWriteFields: writeFieldsLoader([
 				addressInfo,
+				contactInfo,
 				customerInfo,
 				productInfo,
 				purchaseOrderInfo,
@@ -31,6 +39,8 @@ export class IptRestApi2 implements INodeType {
 				salesOrderInfo,
 				salesOrderPositionInfo,
 				supplierInfo,
+				supportCaseInfo,
+				supportCasePositionInfo,
 			]),
 		},
 	};
@@ -69,6 +79,10 @@ export class IptRestApi2 implements INodeType {
 						value: 'address',
 					},
 					{
+						name: 'Contact',
+						value: 'contact',
+					},
+					{
 						name: 'Customer',
 						value: 'customer',
 					},
@@ -97,6 +111,18 @@ export class IptRestApi2 implements INodeType {
 						value: 'supplier',
 					},
 					{
+						name: 'Support Case',
+						value: 'supportCase',
+					},
+					{
+						name: 'Support Case Position',
+						value: 'supportCasePosition',
+					},
+					{
+						name: 'Support Mail',
+						value: 'supportMail',
+					},
+					{
 						name: 'Table Data',
 						value: 'tableData',
 					},
@@ -105,6 +131,7 @@ export class IptRestApi2 implements INodeType {
 				default: 'product',
 			},
 			...addressDescription,
+			...contactDescription,
 			...customerDescription,
 			...productDescription,
 			...purchaseOrderDescription,
@@ -112,6 +139,9 @@ export class IptRestApi2 implements INodeType {
 			...salesOrderDescription,
 			...salesOrderPositionDescription,
 			...supplierDescription,
+			...supportCaseDescription,
+			...supportCasePositionDescription,
+			...supportMailDescription,
 			...tableDataDescription,
 		],
 	};

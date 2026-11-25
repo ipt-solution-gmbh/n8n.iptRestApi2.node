@@ -24,7 +24,7 @@ For details, follow the [installation guide](https://docs.n8n.io/integrations/co
 
 ## Operations
 
-The node offers the resources Address, Customer, Product, Purchase Order, Purchase Order Position, Sales Order, Sales Order Position and Supplier. Each resource has the operations Create, Delete, Get, Get Many and Update. Sales Order and Purchase Order also have actions such as Copy, Transform or Recalculate. Product is described in full below. The other resources work the same way, their sections list only what differs. In the API documentation (Swagger UI) these endpoints are listed under Products, Addresses & Contacts, Customers & Suppliers, Sales and Purchase. The resource Table Data reads any table or view of the client database and has only Get Many.
+The node offers the resources Address, Contact, Customer, Product, Purchase Order, Purchase Order Position, Sales Order, Sales Order Position, Supplier, Support Case and Support Case Position with the operations Create, Delete, Get, Get Many and Update. Support Mail is read-only with Get, Get Many and Download Attachment. Sales Order and Purchase Order also have actions such as Copy, Transform or Recalculate. Product is described in full below. The other resources work the same way, their sections list only what differs. In the API documentation (Swagger UI) these endpoints are listed under Products, Addresses & Contacts, Customers & Suppliers, Sales, Purchase and CRM. The resource Table Data reads any table or view of the client database and has only Get Many.
 
 **Product**
 
@@ -54,14 +54,14 @@ The node offers the resources Address, Customer, Product, Purchase Order, Purcha
   - With Delete Multiple the API deletes one product after the other and stops at the first product that other records still refer to (status 409). Products deleted before that stay deleted.
   - The list `ProductIDs` holds at most the first 1000 deleted products, because the API reports only one page of records. All matching products are deleted.
 - **Get:** get a single product by its numeric ID (`GET /products/{id}`). A single product always has all fields.
-  - **Simplify** returns only these fields: `ProductID`, `ProductNumber`, `Matchcode`, `Name1`, `ProductGroup`, `BaseUnit`, `EANNumber`, `InActive`, `ProductState`, `ChangeDate`. Off by default.
+  - **Simplify** returns only these fields: `ProductID`, `ProductNumber`, `Matchcode`, `Name1`, `ProductGroup`, `BaseUnit`, `EANNumber`, `InActive`, `ProductState`, `ChangeDate`.
   - **Options > Include** loads additional data: attributes, history, multiple EANs, variants.
 - **Get Many:** get a list of products (`GET /products`).
   - **Return All** reads every page. The node requests pages of 1000 products, the largest page size the API allows.
   - **Limit** returns at most the given number of products (1 to 1000).
-  - **Simplify** returns the same fields as for Get. Off by default.
+  - **Simplify** returns the same fields as for Get.
   - **Options > All Data** returns all fields of each product. Without it the list has the base fields only (`ProductID`, `ProductNumber`, `Matchcode`, `EANNumber`).
-  - **Options > Fields** limits the response to the listed fields, for example `ProductID,ProductNumber,Matchcode`. The node then also sends `alldata=true`, so fields other than the base fields are returned too. If Fields is set, it wins over Simplify.
+  - **Options > Fields** limits the response to the listed fields, for example `ProductID,ProductNumber,Matchcode`. The node then also sends `alldata=true`, so fields other than the base fields are returned too.
   - **Options > Include** loads additional data, as for Get.
   - **Options > Sort** sorts the list, for example `-ChangeDate,Matchcode`. A leading minus sorts in descending order.
   - **Options > Filters** and **Options > Clause** search the list, see [All resources](#all-resources).
@@ -81,6 +81,20 @@ The node offers the resources Address, Customer, Product, Purchase Order, Purcha
 - **Delete** (`DELETE /addresses/{id}`): returns `{"deleted": true, "AddressID": 1234}`. **Delete Multiple** works as for products and returns `AddressIDs`. As for products, deleting is permanent and an address that is still in use is refused with status 409 and the reason from myfactory, for example an address that is still a customer or supplier.
 - **Get** and **Get Many** (`GET /addresses`): **Simplify** returns `AddressID`, `AddressNumber`, `Matchcode`, `Name1`, `Street`, `PostalCode`, `City`, `Country`, `EMail`, `PhoneNr`. Without All Data a list has the base fields `AddressID`, `AddressNumber`, `Matchcode`, `Name1`. **Include** loads attributes and history.
 - **Update** (`PUT /addresses/{id}`): as for products.
+
+**Contact**
+
+A contact is a contact person of an address.
+
+- **Create** (`POST /contacts`): `AddressID` (the address the contact belongs to) and `Matchcode` are required. The API rejects an `AddressID` or `Country` that does not exist in myfactory. Contacts have no number range, so `ContactNumber` stays empty unless you send it. With All Data the response has all fields of the new contact, without it only a few. Minimal example, with `1234` standing for the `AddressID` of an existing address:
+
+  ```json
+  { "AddressID": 1234, "Matchcode": "SMITH" }
+  ```
+
+- **Delete** (`DELETE /contacts/{id}`): deletes one contact and returns `{"deleted": true, "ContactID": 1234}`. There is no Delete Multiple. Deleting is permanent and also removes the attribute values, newsletter entries and portal account of the contact. myfactory refuses to delete a contact that is used as document recipient, in sales or purchase documents, in sales contacts or in support cases, with status 409 and the reason.
+- **Get** and **Get Many** (`GET /contacts`): **Simplify** returns `ContactID`, `AddressID`, `ContactNumber`, `Matchcode`, `FirstName`, `LastName`, `EMail`, `PhoneNr`, `MobilePhone`, `InActive`. Without All Data a list has the base fields `ContactID`, `AddressID`, `ContactNumber`, `Matchcode`, `ContactGroup`, `Department`, `PhoneNr`, `EMail`, `Street`, `Country`, `PostalCode`, `City`, `InActive`. **Include** loads attributes and history. For the contacts of one address, add the filter `AddressID`.
+- **Update** (`PUT /contacts/{id}`): as for products.
 
 **Customer**
 
@@ -228,10 +242,56 @@ Works like Sales Order Position, with these differences:
 - **Get** and **Get Many** (`GET /purchaseorderpositions`): **Simplify** returns `OrderPosID`, `OrderID`, `PosNumber`, `ProductNumber`, `Name1`, `Quantity`, `Unit`, `Price`, `Turnover`, `DeliveryDate`. Without All Data a list has the base fields `OrderID`, `ProductID`, `PosType`, `PosNumber`, `Quantity`, `Price`, `Name1`, `PosIndex`, `ProductNumber`, `Unit`, `Turnover`, `OrderPosID`, `PosDeleted`. **Include** loads attributes and history. For the positions of one purchase order, add the filter `OrderID`.
 - **Update** (`PUT /purchaseorderpositions/{id}`): as for sales order positions. The fields of the delivery date confirmation (`DeliveryRequestDate`, `DeliveryReminderDate`, `DeliveryDateConfirmationText`, `CountDeliveryDateChange`) are ignored, use the purchase order action Confirm Delivery Dates.
 
+**Support Case**
+
+- **Create** (`POST /supportcases`): `AddressID` is required. Send `CaseDesc` too, the short description of up to 100 characters. Without it myfactory sets a placeholder text, and Update fails until `CaseDesc` is changed. myfactory assigns `CaseNumber` and presets the state, priority and handling user from its support settings. `ContactID` must be a contact of the address and `HandlingUser` the short name of a myfactory user, otherwise the API answers with status 400. Depending on the support settings in myfactory, `SupportDepartment` or `HandlingUser` can be required too. The response holds only the sent fields, `CaseID` and `CaseNumber`, with or without All Data. Use Get to read all fields. Minimal example, with `1234` standing for the `AddressID` of an existing address:
+
+  ```json
+  { "AddressID": 1234, "CaseDesc": "Printer does not start" }
+  ```
+
+- **Delete** (`DELETE /supportcases/{id}`): deletes one support case and returns `{"deleted": true, "CaseID": 1234}`. There is no Delete Multiple. Deleting is permanent and also deletes all positions of the case. The mails of the positions are not deleted, but they no longer belong to a support case and Support Mail no longer returns them. myfactory refuses to delete a case with recorded times, with status 409 and the reason.
+- **Get** and **Get Many** (`GET /supportcases`): **Simplify** returns `CaseID`, `CaseNumber`, `CaseDesc`, `AddressID`, `ContactID`, `CaseState`, `CasePriority`, `HandlingUser`, `CreationDate`, `ChangeDate`, without the long texts `SupportQuestion` and `SupportReply`. Every field of a support case is a base field, so a list has all fields even without All Data. There is no Include.
+- **Update** (`PUT /supportcases/{id}`): changes the given fields like the support case dialog of myfactory.
+  - Each change of `AddressID`, `ContactID`, `HandlingUser`, `CasePriority`, `SupportDepartment` or `CaseState` adds an entry to the history of the case. The same value sent again adds none.
+  - A new `AddressID` without `ContactID` clears the contact.
+  - A `ContactID` that is not a contact of the address of the case, or a `HandlingUser` that is not a myfactory user, is rejected with status 400 and nothing is changed.
+  - Setting `CaseState` to the completion state of the support settings closes the case. Another state reopens a closed case.
+  - The response holds only the sent fields and `CaseID`. Use Get to read all fields.
+  - The API takes the case from `CaseID` in the request body. The node adds it from Support Case ID, so do not send it in Data.
+
+**Support Case Position**
+
+A position is one entry in the history of a support case, for example a call, a reply or an incoming mail.
+
+- **Create** (`POST /supportcasepos`): `CaseID` (the ID of the support case), `PosType` and `PosDesc` (short description, up to 150 characters) are required. `PosType` is the ID of an action type of your installation, listed in the table `tdSupportCasePosTypes` (read it with Table Data). `PosComment` holds the long text. myfactory sets the date and the user and marks the support case as changed. `PosID` and `CreationUser` are assigned by myfactory, the API rejects them in the request. Minimal example, with `1234` standing for the `CaseID` of an existing support case and `6` for an action type:
+
+  ```json
+  { "CaseID": 1234, "PosType": 6, "PosDesc": "Called the customer" }
+  ```
+
+- **Delete** (`DELETE /supportcasepos/{id}`): deletes one position for good and returns `{"deleted": true, "PosID": 5678}`. There is no Delete Multiple. myfactory does not check whether the position is still needed. The mail of the position is not deleted, but Support Mail no longer returns it unless another position refers to it.
+- **Get** and **Get Many** (`GET /supportcasepos`): **Simplify** returns `PosID`, `CaseID`, `PosDate`, `UserName`, `PosType`, `PosDesc`, `PosComment`, `PosState`, `MailID`, `Mail`. Without All Data a list has the base fields `PosID`, `CaseID`, `PosDate`, `UserName`, `PosType`, `PosDesc`, `PosState`, `BySupportMail`, `MailID`, `SendMailID`. **Include > Mail** adds the mail of the position as `Mail` (header, sender and recipients, without the text): the sent mail if the position has one, otherwise the incoming one. For the positions of one support case, add the filter `CaseID`.
+- **Update** (`PUT /supportcasepos/{id}`): as for products. `CaseID` and `CreationUser` cannot be changed, `PosType`, `PosDesc` and `UserName` must not be empty. myfactory marks the support case as changed.
+
+**Support Mail**
+
+The mails that belong to a support case position: incoming mails and mails sent from the support case. Other mailboxes of the installation are not available. The endpoint is read-only, so there is no Create, Update or Delete.
+
+- **Get** (`GET /supportmails/{id}`): a single mail, given by its `MailID`, always comes with `Content`: `Text` (plain text part), `Html` (HTML part as stored) and `Attachments` (each with `DocumentID`, `FileName`, `ContentType`, `ContentID`). A missing part is `null`. `MailHeader` holds the header lines of the mail.
+- **Get Many** (`GET /supportmails`): each mail has the header fields, the sender `From` and the recipients `To`, `Cc`, `Bcc`, `ReplyTo` (each with `EMail`, `Alias`, `AddressID`, `SalesContactID`, the IDs are 0 if myfactory did not assign the address), and `CaseID`, `CaseNumber`, `PosID` of the support case position.
+  - **Options > Support Case ID**, **Support Case Number** and **Support Case Position ID** return the mails of one support case or position.
+  - **Options > From**, **To**, **Cc**, **Bcc** and **Reply To** return the mails with exactly this e-mail address in that role. They search all mail addresses of the installation and take some hundred milliseconds on large installations.
+  - **Options > Received Since** and **Received Before** limit the list to a time range of `ReceivedDate`, for example for a regular sync: set Received Since to the time of the last run. The time counts as the local time of the myfactory server, an offset is ignored. Mails without a received date are left out. The node adds the range to the clause, together with **Options > Clause** if set. Support mails have no change date, so there is no Changed Since here.
+  - **Options > Include Content** adds `Content` to each mail. The API reads it from the document storage, about one second per 100 mails, so keep the Limit small or read the content with Get.
+  - **Options > Sort** works on the header fields, for example `-ReceivedDate`. `CaseNumber`, `From` and the other fields that are not columns of the mail header cannot be used for sorting, the API answers with status 400.
+  - **Simplify** for Get and Get Many returns `MailID`, `Subject`, `MailDate`, `ReceivedDate`, `From`, `To`, `CaseID`, `CaseNumber`, `PosID`, `Content`. `From`, `To` and `Content` come as whole objects. A list has `Content` only with Include Content.
+- **Download Attachment** (`GET /documentstore/{id}?download=true`): downloads the file of an attachment as binary data. **Document ID** is the `DocumentID` from `Content.Attachments`. **Put Output File in Field** names the binary field, `data` by default. The JSON of the item holds `DocumentID`, `FileName`, `MimeType` and `FileSize`, file name and MIME type come from the response. If rights are set for the access point, the API key needs the read right for the document store.
+
 **Table Data**
 
 - **Get Many** (`GET /tabledatas?table=…`): reads the rows of a table or view of the myfactory client database. There is no Get, Create, Update or Delete, because the endpoint is read-only.
-  - **Table** is required: the name of a table or view without schema, for example `tdProducts`. The API answers with status 404 if no table or view of that name exists. The tables of the interface itself (`tdIptRestApi2…`, for example API keys and the request log) are not available, the API answers with status 403.
+  - **Table** is required: the name of a table or view without schema, for example `tdProducts`. The API answers with status 404 if no table or view of that name exists. The tables of the interface itself (`tdIptRestApi2…`) are not available, the API answers with status 403.
   - If rights are set for the access point in the API configuration, it needs the read right `TableDatas`. Without it the API answers with status 403.
   - Each row becomes one n8n item with the columns of the table as fields.
   - **Return All** and **Limit** work as for products.
@@ -264,9 +324,18 @@ Get Many has two options to search the list. Use Filters for simple matches and 
 
 Return All keeps Filters and Clause for every page.
 
-Simplify and Fields restrict the response to the named fields. Additional data from Include is then left out.
+**Changed Since** (Options of Get Many for Address, Contact, Customer, Product, Purchase Order, Sales Order, Supplier and Support Case) reads only the records created or changed at or after a point in time, for a regular sync (`GET …?changedsince=…&count=false`). Positions, support case positions, support mails and table data have no change date of their own and do not offer it.
 
-Each record becomes its own n8n item. Create and Update return the record as stored after the write. Which fields Create returns depends on All Data and the resource, see above. Errors returned by the API (for example "Login failed" or "No records found") appear as the error message of the node.
+- The API compares the time with `ChangeDate` or `CreationDate`, so new records count too. A time without offset counts as the local time of the myfactory server. A time with offset, for example from `{{ $now.toISO() }}`, is converted.
+- **The output changes.** Each page becomes one item `{"ChangedUntil": "…", "HasMore": false, "Records": [ … ]}`, also when nothing changed. Use the **Split Out** node on `Records` to get one item per record.
+- **ChangedUntil** is the value for Changed Since of the next run. Store it, for example in a data table, and pass it unchanged next time. It lies two minutes before the request, so a record can arrive in two runs in a row, but never in none. Match records by their ID.
+- **Turn on Return All.** Without it, the node reads one page up to Limit. If `HasMore` is `true`, changes were left out, and using that ChangedUntil would skip them for good. With Return All every page becomes its own item: use ChangedUntil of the first item, `{{ $('<node name>').first().json.ChangedUntil }}`. Later pages carry a later value that can skip records changed while the pages were read.
+- Leave Sort empty with Return All. The API then reads the records in the order of their ID, and a record changed during the run keeps its place. Sorting by a date could move records between pages and skip one.
+- Deleted records are not reported.
+
+**Simplify** (Get and Get Many, off by default) returns a short, fixed list of fields per resource, listed with each resource above. Use it to keep the output small, for example for an AI agent. If **Options > Fields** of Get Many is set, it wins over Simplify. Both restrict the response to the named fields, so additional data from Include is then left out.
+
+Each record becomes its own n8n item. Create and Update return the record as stored after the write, except for support cases, where the response holds only the sent fields. Which fields Create returns depends on All Data and the resource, see above. Errors returned by the API (for example "Login failed" or "No records found") appear as the error message of the node.
 
 With Delete Multiple the API deletes one record after the other and stops at the first record it cannot delete. The delete is not atomic: records deleted before that stay deleted.
 
@@ -297,6 +366,9 @@ When you save the credential, n8n calls `GET /ipt/api/info`. The test fails if t
 - Options > Clause needs ipt RestApi2 29.13.1 or later. Older versions ignore a rejected clause and return unfiltered results.
 - Table Data needs ipt RestApi2 34.6.1 or later. Older versions return the rows without their columns. From 57.5.1 on, the read right `TableDatas` can be set in the rights of the access point and the tables of the interface itself are blocked.
 - The field `PosIndex` of sales and purchase order positions needs ipt RestApi2 57.9.0 or later: in lists, and to insert a position at a given place (Create) or move it (Update).
+- Support Mail and Include Mail for support case positions need ipt RestApi2 57.35.0 or later.
+- Options > Changed Since needs ipt RestApi2 57.41.0 or later.
+- Update of a support case adds history entries and checks `ContactID` and `HandlingUser` from ipt RestApi2 57.36.1 on. The rules for Create and Update of support case positions described above apply from 52.0.0 on.
 - Built with `@n8n/node-cli` 0.54.4 and `n8n-workflow` 2.45. Not yet tested against specific n8n versions.
 
 ## Usage
@@ -315,8 +387,18 @@ The node calls `GET /ipt/api/products` with the query parameters `pagesize=50`, 
 The node can be attached to an AI Agent node as a tool.
 
 - **One tool node per operation.** Resource and operation are fixed for each tool node. Add one node for "Get many products", another for "Update a product", and so on.
-- **IDs as parameters.** The ID parameters are Product ID (`productId`), Address ID (`addressId`), Customer ID (`customerId`), Supplier ID (`supplierId`), Sales Order ID (`salesOrderId`, also for the sales order actions except Transform), Sales Order Position ID (`salesOrderPosId`), Purchase Order ID (`purchaseOrderId`, also for the purchase order actions except Transform) and Purchase Order Position ID (`purchaseOrderPosId`). Transform uses Source Order ID (`sourceOrderId`) and Target Order Type (`targetOrderType`) for sales and purchase orders.
-- **Tool description.** By default n8n builds the description from the action, for example "Get many products from myfactory in ipt RestApi2". The descriptions of operations and parameters are not passed to the model. Set the tool description manually and say what the tool returns and when to use it, for example: "Searches products in the myfactory ERP. Returns product number, matchcode, name and product group."
+- **IDs as parameters.** The ID parameters are Product ID (`productId`), Address ID (`addressId`), Contact ID (`contactId`), Customer ID (`customerId`), Supplier ID (`supplierId`), Sales Order ID (`salesOrderId`, also for the sales order actions except Transform), Sales Order Position ID (`salesOrderPosId`), Purchase Order ID (`purchaseOrderId`, also for the purchase order actions except Transform), Purchase Order Position ID (`purchaseOrderPosId`), Support Case ID (`supportCaseId`), Support Case Position ID (`supportCasePosId`), Support Mail ID (`supportMailId`) and Document ID (`documentId`, for Download Attachment). Transform uses Source Order ID (`sourceOrderId`) and Target Order Type (`targetOrderType`) for sales and purchase orders.
+- **Tool description.** The parameter **Tool Description** appears only when the node is attached to an AI Agent as a tool (n8n then uses the tool variant of the node). The regular node does not have it. The model does not see the descriptions of the node's operations and parameters. It sees only this text and, for each parameter filled with `$fromAI`, the description given there.
+  - **Set Automatically** (default): n8n builds the description from the action of the operation and the default node name, for example "Get many contacts from myfactory in ipt RestApi2".
+  - **Set Manually**: your own text in **Description**. Use it as soon as an agent has several similar tools, for example several Get Many tools. Say what the tool returns, which fields it returns (with Simplify), how many records one call returns at most (Limit) and when another tool is the better choice.
+  - Example for Contact > Get Many with Simplify on and Limit 25:
+
+    ```
+    Searches contact persons in the myfactory ERP. Returns at most 25 contacts per call, each with ContactID, AddressID, ContactNumber, Matchcode, FirstName, LastName, EMail, PhoneNr, MobilePhone and InActive. Use it to find a contact by name or e-mail address. To read the company of a contact, use the address tool with the AddressID.
+    ```
+
+    Clause for this tool: `{{ $fromAI("clause", "SQL condition on contact fields such as LastName, EMail or AddressID. Write = as $EQ$ and % as $P100$, for example LastName LIKE '$P100$Smith$P100$'. Leave empty for no condition.", "string") }}`
+
 - **Let the model fill parameters with `$fromAI`.**
   - Product ID: `{{ $fromAI("productId", "Numeric ProductID of the product", "number") }}`
   - For agents, Data with a single `$fromAI` is the simple way to write records. Fields is meant for setting up the node in the editor.
@@ -335,6 +417,9 @@ The node can be attached to an AI Agent node as a tool.
 - **The model does the math.** The API returns records, not totals. For a question like "What was the turnover in October?" the model reads the sales orders of that month and adds up `OrderSum` itself. Use Simplify or Fields so that it reads only the fields it needs, and set a Limit that covers the expected number of records. With too low a limit the sum is wrong without notice.
 - **Tell the agent the order of steps.** A customer needs an existing address. Give the agent a tool to create addresses and one to create customers, and say in the system message or the tool description that it must create the address first and pass the returned `AddressID` to the customer. A sales order needs an existing customer and the number of an order type of your installation. Name the order type in the tool description, because the agent cannot look it up. The same applies to suppliers and purchase orders.
 - **Keep the output small.** The tool output goes to the model as JSON and counts against its context window. Turn **Simplify** on and keep **Limit** low, for example 10 to 20. Avoid **Return All** and **All Data** in tool nodes, because a list with all fields can exceed the context window. All Data is off by default for Create, which keeps the output small. Turn it on only if the agent needs all fields of the new record. Sales orders are large: Get, Create (with or without All Data), Update and most sales order actions (Change Currency, Change Customer, Copy, Recalculate, Refresh Prices, Renumber Positions, Transform) return every position. Use Simplify for Get if the agent does not need the positions. For lists of sales orders, Simplify still makes the API load all details of each order, so keep the Limit small. The same applies to purchase orders and their actions that return the order (Change Currency, Change Supplier, Copy, Recalculate, Refresh Prices, Renumber Positions, Transform).
+- **Changed Since answers "what changed?"** With Changed Since the tool returns one item with `ChangedUntil`, `HasMore` and `Records`, also when nothing changed. Let the model fill it with `{{ $fromAI("changedSince", "Return records created or changed since this time, for example 2026-11-01T08:00:00. Leave empty for no time limit.", "string") }}`. Keep Simplify on. If `HasMore` is `true`, more records changed than Limit allows, and the model does not see the rest. Say in the tool description that the result is then incomplete.
+- **Support mails can be large.** For an agent that reads mails, use Get Many with Simplify and without Include Content to find the mails, and a Get tool to read the text of one mail. Get always returns the HTML part too. Download Attachment returns the file as binary data, which the agent cannot read, so use it in regular workflow steps instead.
+- **Support cases need their own IDs and texts.** A new support case needs the `AddressID`, and a `ContactID` must be a contact of that address, so give the agent tools for addresses and contacts. Tell it to send a meaningful `CaseDesc`. A position needs the ID of an action type of your installation as `PosType`: name the allowed values in the tool description.
 - **Table Data reads any table.** Set Table as a fixed value in the tool node and name the table and its meaning in the tool description, so the agent reads only the table it needs. Rows of myfactory tables often have many columns, so set **Fields** to the columns the agent needs.
 - **Give Delete to an agent only with care.** If an agent must delete, require a human approval: n8n can add a [human review step](https://docs.n8n.io/build/integrate-ai/ai-examples/human-in-the-loop-for-tools) in the Tools panel of the AI Agent node, and the delete tool is attached to that step. You can also use an access point without the delete right for agent workflows. Do not give an agent a tool with **Delete Multiple** turned on.
 - **Deleting a customer or supplier can delete its address.** Depending on a myfactory setting, myfactory also deletes the address when no other record uses it, as described for Delete under Customer and Supplier in [Operations](#operations). The agent does not know this. Say it in the description of the delete tool, and tell the agent to ask before it deletes a customer or supplier on an address it did not create itself.

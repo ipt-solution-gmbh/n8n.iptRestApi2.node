@@ -9,13 +9,15 @@ export interface OperationTexts {
 	getDescription?: string;
 }
 
-// The Operation parameter of a resource: Create, Delete, Get, Get Many and Update, plus the
-// additional operations the resource passes. n8n builds the default tool description for AI
-// agents from the action as "<action> in <node name>", so every action names myfactory.
+// The Operation parameter of a resource: those of Create, Delete, Get, Get Many and Update that
+// the endpoint offers, plus the additional operations the resource passes. n8n builds the default
+// tool description for AI agents from the action as "<action> in <node name>", so every action
+// names myfactory.
 export function operationProperty(
 	info: ResourceInfo,
 	texts: OperationTexts = {},
 	additionalOperations: INodePropertyOptions[] = [],
+	offeredOperations = ['create', 'delete', 'get', 'getAll', 'update'],
 ): INodeProperties {
 	const record = `${/^[aeiou]/.test(info.label) ? 'an' : 'a'} ${info.label}`;
 	const recordUrl = `=${info.path}/{{encodeURIComponent($parameter.${info.idParameter})}}`;
@@ -87,9 +89,12 @@ export function operationProperty(
 			},
 		},
 		// The lint rule for alphabetical options only checks written lists, so the order is set here
-		options: [...standardOperations, ...additionalOperations].sort((a, b) =>
-			a.name.localeCompare(b.name),
-		),
+		options: [
+			...standardOperations.filter((operation) =>
+				offeredOperations.includes(String(operation.value)),
+			),
+			...additionalOperations,
+		].sort((a, b) => a.name.localeCompare(b.name)),
 		default: 'getAll',
 	};
 }

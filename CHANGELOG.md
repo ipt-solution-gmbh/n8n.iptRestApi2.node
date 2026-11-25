@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Resource Contact (`/contacts`) with the operations Create, Delete (one contact by ID), Get, Get Many and Update. Get and Get Many offer Include for attributes and history.
+- Resource Support Case (`/supportcases`) with the operations Create, Delete (one case by ID, also deletes its positions), Get, Get Many and Update. Update sends the case ID in the request body, because the API takes the case from there. The descriptions say how Update writes history entries, clears the contact on a new address and rejects a contact or handling user that does not fit.
+- Resource Support Case Position (`/supportcasepos`) with the operations Create, Delete (one position by ID), Get, Get Many and Update. Get and Get Many offer Include for the mail of the position.
+- Resource Support Mail (`/supportmails`) with the operations Get and Get Many. Get Many has options to find the mails of a support case, a position or an e-mail address, a time range on the received date and the switch Include Content for text and attachments.
+- Support Mail operation Download Attachment. It downloads the file of a mail attachment from the document store (`GET /documentstore/{id}?download=true`) as binary data, with file name and MIME type from the response.
+- Option Changed Since for Get Many of Address, Contact, Customer, Product, Purchase Order, Sales Order, Supplier and Support Case (`changedsince`, needs ipt RestApi2 57.41.0). With it, each page becomes one item with `ChangedUntil`, `HasMore` and `Records`, also when nothing changed, so a workflow always gets the value for the next run.
+
+### Changed
+
+- Return All also follows `HasMore`, which the API reports instead of the page count when `count=false` is sent.
+- Filters and Delete Multiple refuse the names `changedsince` and `count`, because the API does not use them as field filters.
+
 ## 0.1.0 (2026-11-10)
 
 ### Added

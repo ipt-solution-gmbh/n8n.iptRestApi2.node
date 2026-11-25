@@ -1,5 +1,5 @@
 import type { INodeProperties } from 'n8n-workflow';
-import { getManyProperties } from '../../shared/read';
+import { changedSinceOption, getManyProperties } from '../../shared/read';
 import { supplierIncludes, supplierInfo, supplierSimplifiedFields } from './get';
 
 export const supplierGetManyDescription: INodeProperties[] = getManyProperties(
@@ -12,4 +12,5 @@ export const supplierGetManyDescription: INodeProperties[] = getManyProperties(
 		filterField: 'SupplierGroup',
 		clause: "ChangeDate$GT$$EQ$'20261001'",
 	},
+	[changedSinceOption],
 );

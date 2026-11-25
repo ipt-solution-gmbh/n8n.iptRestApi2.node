@@ -2,6 +2,8 @@ import type {
 	IDataObject,
 	IExecuteSingleFunctions,
 	IHttpRequestOptions,
+	IN8nHttpFullResponse,
+	INodeExecutionData,
 	INodeProperties,
 	INodePropertyOptions,
 } from 'n8n-workflow';
@@ -51,6 +53,70 @@ export const allDataOption: INodeProperties = {
 	type: 'boolean',
 	default: false,
 	description: 'Whether to return all fields of each record instead of the base fields only',
+};
+
+// A $fromAI expression the AI agent left without a value resolves to undefined, which counts as
+// not set like an empty text
+function changedSinceValue(context: IExecuteSingleFunctions): string {
+	const value = context.getNodeParameter('options.changedSince', '');
+	return value === undefined || value === null ? '' : String(value).trim();
+}
+
+// The API answers a list with changedsince like any list, plus ChangedUntil in the envelope.
+// count=false saves the API the extra count and is recommended for changedsince.
+async function sendChangedSince(
+	this: IExecuteSingleFunctions,
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	const changedSince = changedSinceValue(this);
+	if (changedSince !== '') {
+		requestOptions.qs = { ...requestOptions.qs, changedsince: changedSince, count: 'false' };
+	}
+	return requestOptions;
+}
+
+// ChangedUntil is the value for Changed Since of the next run and must reach the workflow even
+// when nothing changed. So with Changed Since each page becomes one item that holds ChangedUntil,
+// HasMore and the records of the page, also with no records. The records come from the response,
+// because the operation has already turned them into items.
+async function changesOutput(
+	this: IExecuteSingleFunctions,
+	items: INodeExecutionData[],
+	response: IN8nHttpFullResponse,
+): Promise<INodeExecutionData[]> {
+	if (changedSinceValue(this) === '') {
+		return items;
+	}
+	const result = ((response.body as IDataObject).Result ?? {}) as IDataObject;
+	return [
+		{
+			json: {
+				ChangedUntil: result.ChangedUntil,
+				HasMore: result.HasMore === true,
+				Records: Array.isArray(result.BaseItems) ? result.BaseItems : [],
+			},
+		},
+	];
+}
+
+// Get Many option for endpoints whose records have ChangeDate or CreationDate. The API returns
+// the records created or changed at or after the given time. Each resource passes it as an
+// additional option, because the API answers it with status 400 on other endpoints.
+export const changedSinceOption: INodeProperties = {
+	displayName: 'Changed Since',
+	name: 'changedSince',
+	type: 'dateTime',
+	default: '',
+	description:
+		'Return only records created or changed at or after this time. The output then becomes one item per page with ChangedUntil, HasMore and Records, also when nothing changed. Turn on Return All and use ChangedUntil of the first item as Changed Since of the next run.',
+	routing: {
+		send: {
+			preSend: [sendChangedSince],
+		},
+		output: {
+			postReceive: [changesOutput],
+		},
+	},
 };
 
 // Simplify asks the API for a short, fixed list of fields per resource, which keeps the output
@@ -147,19 +213,24 @@ export interface GetManyExamples {
 	clause: string;
 }
 
+// The clause of Options in brackets, or '' without one. The API treats a present but empty clause
+// as a condition, so an empty one must not be sent. A $fromAI expression the AI agent left without
+// a value resolves to undefined, and String(undefined) would send the clause (undefined).
+export function bracketedClause(context: IExecuteSingleFunctions): string {
+	const clauseValue = context.getNodeParameter('options.clause', '');
+	const clause = typeof clauseValue === 'string' ? clauseValue.trim() : '';
+	// The API appends the clause to the filters with AND but without brackets, so an OR in the
+	// clause would otherwise cancel the filters
+	return clause === '' ? '' : `(${clause})`;
+}
+
 async function sendClause(
 	this: IExecuteSingleFunctions,
 	requestOptions: IHttpRequestOptions,
 ): Promise<IHttpRequestOptions> {
-	// The API treats a present but empty clause as a condition, so an empty one is not sent. A
-	// $fromAI expression the AI agent left without a value resolves to undefined, and
-	// String(undefined) would send the clause (undefined).
-	const clauseValue = this.getNodeParameter('options.clause', '');
-	const clause = typeof clauseValue === 'string' ? clauseValue.trim() : '';
+	const clause = bracketedClause(this);
 	if (clause !== '') {
-		// The API appends the clause to the filters with AND but without brackets, so an OR in
-		// the clause would otherwise cancel the filters
-		requestOptions.qs = { ...requestOptions.qs, clause: `(${clause})` };
+		requestOptions.qs = { ...requestOptions.qs, clause };
 	}
 	return requestOptions;
 }
@@ -261,8 +332,10 @@ export function paginationProperties(resource: string): INodeProperties[] {
 					pagination: {
 						type: 'generic',
 						properties: {
+							// With count=false (sent by Changed Since) the API reports no TotalPages (-1) but
+							// HasMore. Without it, HasMore is missing from the response.
 							continue:
-								'={{ $response.body.Result.PageNumber < $response.body.Result.TotalPages }}',
+								'={{ $response.body.Result.HasMore === true || $response.body.Result.PageNumber < $response.body.Result.TotalPages }}',
 							// Evaluated before every request. Before the first one $response is empty, so the
 							// first page is 1. The page goes into the URL because a qs object here would
 							// replace the query parameters (pagesize, fields, sort, filters) instead of adding to them.
@@ -303,12 +376,15 @@ export function paginationProperties(resource: string): INodeProperties[] {
 	];
 }
 
-// Parameters of Get Many. A resource without additional data passes no includes.
+// Parameters of Get Many. A resource without additional data passes no includes. Additional
+// options are added to Options, an additional option with the name of a standard option replaces
+// it, for example a Clause that also takes a date range.
 export function getManyProperties(
 	info: ResourceInfo,
 	simplifiedFields: string[],
 	includes: INodePropertyOptions[],
 	examples: GetManyExamples,
+	additionalOptions: INodeProperties[] = [],
 ): INodeProperties[] {
 	const showOnlyForGetMany = {
 		operation: ['getAll'],
@@ -329,15 +405,21 @@ export function getManyProperties(
 			},
 		},
 	};
-	const options = [
+	const standardOptions = [
 		allDataOption,
 		fieldsOption(examples.fields),
 		sortOption,
 		...searchOptions(info, examples),
 	];
 	if (includes.length > 0) {
-		options.push(includeOption(includes));
+		standardOptions.push(includeOption(includes));
 	}
+	const options = [
+		...standardOptions.filter(
+			(option) => !additionalOptions.some((additional) => additional.name === option.name),
+		),
+		...additionalOptions,
+	];
 
 	return [
 		...paginationProperties(info.resource),

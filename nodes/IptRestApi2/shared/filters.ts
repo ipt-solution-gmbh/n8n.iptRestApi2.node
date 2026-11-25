@@ -5,11 +5,11 @@ import {
 	type INodePropertyCollection,
 } from 'n8n-workflow';
 
-// Query parameters the node does not accept as a field filter. Most of them the API never uses as
-// a filter and drops silently while building the WHERE clause, so a filter with such a name would
-// have no effect: Get Many would return unfiltered records, and Delete Multiple with no filter left
-// would delete every record of the endpoint. Sources in the API: excluded parameters, switches for
-// additional data, reserved keywords and action parameters. A few names (for example bookingdate,
+// Query parameters the node does not accept as a field filter. The API does not use most of them
+// as a filter and ignores them silently, so a filter with such a name would have no effect: Get
+// Many would return unfiltered records, and Delete Multiple with no filter left would delete every
+// record of the endpoint. The list holds reserved parameters, switches for additional data, SQL
+// keywords and parameters of actions. A few names (for example bookingdate,
 // prices, discounts) are column filters on some endpoints of current API versions, but older
 // versions dropped them as well. The node refuses them everywhere, Get Many offers Clause instead.
 const nonFilterParameters = [
@@ -18,9 +18,11 @@ const nonFilterParameters = [
 	'attributes',
 	'attributetargets',
 	'bookingdate',
+	'changedsince',
 	'clause',
 	'clientid',
 	'commissions',
+	'count',
 	'discounts',
 	'distinct',
 	'download',

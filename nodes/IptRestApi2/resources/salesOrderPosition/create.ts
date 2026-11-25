@@ -2,7 +2,7 @@ import type { INodeProperties } from 'n8n-workflow';
 import { createDataProperty } from '../../shared/write';
 
 // The API needs the sales order and, for a product position, the product. It fills the other
-// required columns itself and recalculates the sales order.
+// required fields itself and recalculates the sales order.
 export const salesOrderPositionCreateDescription: INodeProperties[] = [
 	{
 		displayName:
