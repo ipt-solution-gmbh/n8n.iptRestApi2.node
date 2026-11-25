@@ -93,7 +93,7 @@ function queryOption(
 		name,
 		type: 'string',
 		default: '',
-		placeholder,
+		placeholder: `e.g. ${placeholder}`,
 		description,
 		routing: {
 			send: {

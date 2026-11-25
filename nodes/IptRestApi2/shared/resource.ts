@@ -63,7 +63,7 @@ export function idProperty(
 			},
 		},
 		default: '',
-		placeholder: '1234',
+		placeholder: 'e.g. 1234',
 		description: `Numeric ID of the ${info.label} (field ${info.idField})`,
 	};
 	if (info.textKeyExample === undefined) {
@@ -71,7 +71,7 @@ export function idProperty(
 	}
 	return {
 		...property,
-		placeholder: info.textKeyExample,
+		placeholder: `e.g. ${info.textKeyExample}`,
 		description: `Key of the ${info.label}, the text in the field ${info.idField}`,
 		routing: {
 			send: {

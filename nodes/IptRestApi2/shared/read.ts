@@ -41,7 +41,7 @@ export function fieldsOption(placeholder: string): INodeProperties {
 		name: 'fields',
 		type: 'string',
 		default: '',
-		placeholder,
+		placeholder: `e.g. ${placeholder}`,
 		description: 'Comma-separated list of fields to return. Leave empty for all fields.',
 	};
 }
@@ -248,7 +248,7 @@ export function clauseOption(
 		name: 'clause',
 		type: 'string',
 		default: '',
-		placeholder,
+		placeholder: `e.g. ${placeholder}`,
 		description: `${condition} Write = as $EQ$, &lt;&gt; as $NE$, &lt; as $LT$, &gt; as $GT$, &gt;= as $GT$$EQ$, &lt;= as $LT$$EQ$, % as $P100$ and : as $2P$. Write dates as 'yyyyMMdd'. Example: BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'. Only printable ASCII (no umlauts, no line breaks) and no ; -- /* or SQL keywords such as SELECT, SET, UPDATE, CHAR or CONVERT (also inside text), otherwise the API answers with status 400. Keep it under 2000 characters: instead of a long IN (...) list, filter on another field or use a range such as ${rangeExample} and continue with the next range. See the README for details.`,
 		routing: {
 			send: {
@@ -396,7 +396,7 @@ export function getManyProperties(
 		name: 'sort',
 		type: 'string',
 		default: '',
-		placeholder: examples.sort,
+		placeholder: `e.g. ${examples.sort}`,
 		description:
 			'Comma-separated list of fields to sort by. A leading minus sorts in descending order.',
 		routing: {

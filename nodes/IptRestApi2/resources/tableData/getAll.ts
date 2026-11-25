@@ -42,7 +42,7 @@ export const tableDataGetManyDescription: INodeProperties[] = [
 			show: showOnlyForGetMany,
 		},
 		default: '',
-		placeholder: 'tdProducts',
+		placeholder: 'e.g. tdProducts',
 		description:
 			'Name of a table or view in the myfactory client database, without schema, for example tdProducts. The tables of the interface itself (tdIptRestApi2...) are not available.',
 		routing: {

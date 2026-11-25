@@ -26,7 +26,7 @@ export class IptRestApi2Api implements ICredentialType {
 			type: 'string',
 			required: true,
 			default: '',
-			placeholder: 'https://example.com/instance',
+			placeholder: 'e.g. https://example.com/instance',
 			description:
 				'URL of the myfactory instance, without "/ipt/api". The node adds the API path itself.',
 		},

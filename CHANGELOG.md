@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- README: new section Example workflows with two step-by-step examples, create and update a customer group, and find and delete a customer.
+- Action names without articles, following the n8n UX guidelines, for example "Create product in myfactory" instead of "Create a product in myfactory". The internal names of resources, operations and parameters are unchanged, so existing workflows keep working.
+- Placeholders of input fields start with "e.g.", for example "e.g. 1234".
+- README: messages that come from myfactory itself are in the language of the myfactory installation, for example German.
+
 ## 0.3.0 (2026-11-25)
 
 ### Added

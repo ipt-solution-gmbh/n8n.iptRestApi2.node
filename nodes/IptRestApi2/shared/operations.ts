@@ -33,7 +33,7 @@ export function operationProperty(
 		{
 			name: 'Create',
 			value: 'create',
-			action: `Create ${record} in myfactory`,
+			action: `Create ${info.label} in myfactory`,
 			description: texts.createDescription ?? `Create a new ${info.label}`,
 			routing: {
 				request: { method: 'POST', url: info.path, ignoreHttpStatusErrors: true },
@@ -43,7 +43,7 @@ export function operationProperty(
 		{
 			name: 'Delete',
 			value: 'delete',
-			action: `Delete ${record} in myfactory`,
+			action: `Delete ${info.label} in myfactory`,
 			description: `Delete ${record}`,
 			routing: {
 				// Delete Multiple changes the URL and adds the filters (deleteProperties in delete.ts)
@@ -54,7 +54,7 @@ export function operationProperty(
 		{
 			name: 'Get',
 			value: 'get',
-			action: `Get ${record} from myfactory`,
+			action: `Get ${info.label} from myfactory`,
 			description: texts.getDescription ?? `Get the data of a single ${info.label}`,
 			routing: {
 				request: { method: 'GET', url: recordUrl, ignoreHttpStatusErrors: true },
@@ -74,7 +74,7 @@ export function operationProperty(
 		{
 			name: 'Update',
 			value: 'update',
-			action: `Update ${record} in myfactory`,
+			action: `Update ${info.label} in myfactory`,
 			description: `Change the given fields of ${record}`,
 			routing: {
 				request: { method: 'PUT', url: recordUrl, ignoreHttpStatusErrors: true },

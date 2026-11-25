@@ -67,7 +67,7 @@ async function attachmentOutput(
 export const downloadAttachmentOperation: INodePropertyOptions = {
 	name: 'Download Attachment',
 	value: 'downloadAttachment',
-	action: 'Download a support mail attachment from myfactory',
+	action: 'Download support mail attachment from myfactory',
 	description: 'Download the file of a mail attachment as binary data',
 	routing: {
 		request: {
@@ -93,7 +93,7 @@ export const supportMailDownloadDescription: INodeProperties[] = [
 			show: showOnlyForDownload,
 		},
 		default: '',
-		placeholder: '4321',
+		placeholder: 'e.g. 4321',
 		description:
 			'DocumentID of the attachment, listed under Content.Attachments of a support mail (Get, or Get Many with Include Content). If rights are set for the access point, the API key needs the read right for the document store.',
 	},

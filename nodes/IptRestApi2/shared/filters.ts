@@ -92,7 +92,7 @@ export function filterValues(
 					name: 'field',
 					type: 'string',
 					default: '',
-					placeholder: filterExample,
+					placeholder: `e.g. ${filterExample}`,
 					description: `Name of a field of ${labelPlural}. Upper and lower case do not matter.`,
 				},
 				{

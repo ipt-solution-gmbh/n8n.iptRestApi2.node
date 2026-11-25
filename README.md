@@ -13,6 +13,7 @@ ipt RestApi2 is a REST interface for the myfactory ERP, provided as a myfactory 
 [Credentials](#credentials)
 [Compatibility](#compatibility)
 [Usage](#usage)
+[Example workflows](#example-workflows)
 [Resources](#resources)
 [Version history](#version-history)
 
@@ -370,7 +371,7 @@ Return All keeps Filters and Clause for every page.
 
 **Simplify** (Get and Get Many, off by default) returns a short, fixed list of fields per resource, listed with each resource above. Use it to keep the output small, for example for an AI agent. If **Options > Fields** of Get Many is set, it wins over Simplify. Both restrict the response to the named fields, so additional data from Include is then left out.
 
-Each record becomes its own n8n item. Create and Update return the record as stored after the write, except for support cases, where the response holds only the sent fields. Which fields Create returns depends on All Data and the resource, see above. Errors returned by the API (for example "Login failed" or "No records found") appear as the error message of the node.
+Each record becomes its own n8n item. Create and Update return the record as stored after the write, except for support cases, where the response holds only the sent fields. Which fields Create returns depends on All Data and the resource, see above. Errors returned by the API (for example "Login failed" or "No records found") appear as the error message of the node. Messages that come from myfactory itself, for example why a record cannot be deleted, are in the language of the myfactory installation, for example German.
 
 With Delete Multiple the API deletes one record after the other and stops at the first record it cannot delete. The delete is not atomic: records deleted before that stay deleted.
 
@@ -418,11 +419,43 @@ Example: read the first 50 products, sorted by product number, with only three f
 
 The node calls `GET /ipt/api/products` with the query parameters `pagesize=50`, `fields=ProductID,ProductNumber,Matchcode` and `sort=ProductNumber` and returns one item per product.
 
+## Example workflows
+
+Two small workflows that show how the output of one node feeds the next. Both start with a **Manual Trigger** node, and every **ipt RestApi2** node uses the same credential. The values are examples. Replace them with values of your installation.
+
+**Create a customer group and change it**
+
+1. Add an **ipt RestApi2** node. Set **Resource** to **Customer Group** and **Operation** to **Create**. Enter in **Data**:
+
+   ```json
+   { "CustomerGroupName": "WHOLESALE", "CustomerGroupDesc": "Wholesale customers" }
+   ```
+
+   The node returns the new customer group as one item, including `CustomerGroupName`.
+
+2. Add a second **ipt RestApi2** node after it. Set **Resource** to **Customer Group** and **Operation** to **Update**.
+3. Set **Customer Group Name** to the expression `{{ $json.CustomerGroupName }}`, so it takes the key from the output of the Create node.
+4. Enter in **Data** only the fields to change, without the key:
+
+   ```json
+   { "CustomerGroupDesc": "Wholesale and export customers" }
+   ```
+
+   A `CustomerGroupName` in Data would rename the customer group, see **Master data: lookup lists** under [Operations](#operations).
+
+**Delete a customer**
+
+1. Add an **ipt RestApi2** node to find the customer. Set **Resource** to **Customer** and **Operation** to **Get Many**. Under **Options > Filters**, add a filter with **Field Name** `CustomerNumber` and **Value** `10001`.
+2. Add a second **ipt RestApi2** node after it. Set **Resource** to **Customer** and **Operation** to **Delete**. Leave **Delete Multiple** off.
+3. Set **Customer ID** to the expression `{{ $json.CustomerID }}`.
+
+The node returns one item `{"deleted": true, "CustomerID": 1234}`. Before you run it, read Delete under **Customer** in [Operations](#operations): depending on a myfactory setting, the address of the customer is deleted too, and a customer that is still in use cannot be deleted.
+
 ## Using the node as an AI agent tool
 
 The node can be attached to an AI Agent node as a tool.
 
-- **One tool node per operation.** Resource and operation are fixed for each tool node. Add one node for "Get many products", another for "Update a product", and so on.
+- **One tool node per operation.** Resource and operation are fixed for each tool node. Add one node for "Get many products", another for "Update product", and so on.
 - **IDs as parameters.** The ID parameters are Product ID (`productId`), Address ID (`addressId`), Contact ID (`contactId`), Customer ID (`customerId`), Supplier ID (`supplierId`), Sales Order ID (`salesOrderId`, also for the sales order actions except Transform), Sales Order Position ID (`salesOrderPosId`), Purchase Order ID (`purchaseOrderId`, also for the purchase order actions except Transform), Purchase Order Position ID (`purchaseOrderPosId`), Support Case ID (`supportCaseId`), Support Case Position ID (`supportCasePosId`), Support Mail ID (`supportMailId`) and Document ID (`documentId`, for Download Attachment). The master data lookup lists use Unit Name (`unitName`), Weight Unit Name (`weightUnitName`), Product Group Name (`productGroupName`), Customer Group Name (`customerGroupName`), Supplier Group Name (`supplierGroupName`), Contact Group Name (`contactGroupName`), Address Group Name (`addressGroupName`), Country ID (`countryId`), Currency Unit (`currencyUnit`), Shipment Condition Name (`shipmentConditionName`) and Delivery Condition Name (`deliveryConditionName`), all text keys, and the numeric Product State ID (`productStateId`), Product Type ID (`productTypeId`), Manufacturer ID (`manufacturerId`) and Payment Condition ID (`paymentConditionId`). Transform uses Source Order ID (`sourceOrderId`) and Target Order Type (`targetOrderType`) for sales and purchase orders.
 - **Tool description.** The parameter **Tool Description** appears only when the node is attached to an AI Agent as a tool (n8n then uses the tool variant of the node). The regular node does not have it. The model does not see the descriptions of the node's operations and parameters. It sees only this text and, for each parameter filled with `$fromAI`, the description given there.
   - **Set Automatically** (default): n8n builds the description from the action of the operation and the default node name, for example "Get many contacts from myfactory in ipt RestApi2".
