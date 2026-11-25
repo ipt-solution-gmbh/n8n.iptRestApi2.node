@@ -3,4 +3,5 @@ node_modules
 CLAUDE.local.md
 /.claude/
 .claude_sql
+/plans/
 .ds_store
