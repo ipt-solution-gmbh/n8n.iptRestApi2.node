@@ -66,7 +66,7 @@ export const tableDataGetManyDescription: INodeProperties[] = [
 			clauseOption(
 				'SQL condition on the columns of the table or view.',
 				// The tables differ, so the range example names no real column
-				'&lt;key column&gt;',
+				'&lt;key column&gt;$GT$5000',
 				"ChangeDate$GT$$EQ$'20261001'",
 			),
 			{

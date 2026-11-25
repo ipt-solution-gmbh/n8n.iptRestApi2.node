@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Master data lookup lists as resources: Unit (`/units`), Weight Unit (`/weightunits`), Product Group (`/productgroups`), Customer Group (`/customergroups`), Supplier Group (`/suppliergroups`), Product State (`/productstates`), Manufacturer (`/manufacturers`), Country (`/countries`), Currency (`/currencies`), Payment Condition (`/paymentconditions`), Shipment Condition (`/shipmentconditions`) and Delivery Condition (`/deliveryconditions`) with the operations Create, Delete (one record by key), Get, Get Many and Update. Contact Group (`/contactgroups`), Address Group (`/addressgroups`, needs ipt RestApi2 57.23.0) and Product Type (`/producttypes`) with Get and Get Many.
+- Lists with a text key, such as units or countries, take the key as text. Get, Update and Delete send it as a query parameter on the key field (`GET /units?UnitName=kg`). The node stops if the key is empty, so Get never returns the whole list by mistake.
+- Product State offers Changed Since for Get Many.
+- The description of Data for Update of a list with a text key, and the README, warn that a key sent in Data renames the record while the records that use the old key keep it.
+
 ## 0.2.0 (2026-11-25)
 
 ### Added

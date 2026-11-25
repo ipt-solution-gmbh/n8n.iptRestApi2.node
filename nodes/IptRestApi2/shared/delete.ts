@@ -151,7 +151,9 @@ export function deletedOutput(info: ResourceInfo): PostReceiveAction {
 				},
 			];
 		}
-		const id = records[0]?.[info.idField] ?? Number(this.getNodeParameter(info.idParameter));
+		const key = this.getNodeParameter(info.idParameter);
+		const id =
+			records[0]?.[info.idField] ?? (info.textKeyExample === undefined ? Number(key) : String(key));
 		return [{ json: { deleted: true, [info.idField]: id } }];
 	};
 }

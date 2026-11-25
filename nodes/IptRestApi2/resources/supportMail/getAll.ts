@@ -141,7 +141,7 @@ export const supportMailGetManyDescription: INodeProperties[] = getManyPropertie
 		{
 			...clauseOption(
 				'SQL condition on the columns of the mail header, for example Subject or ReceivedDate, combined with the other options by AND. Case, position and addresses are not columns, use their own options.',
-				'MailID',
+				'MailID$GT$5000',
 				"Subject LIKE '$P100$invoice$P100$'",
 			),
 			routing: {

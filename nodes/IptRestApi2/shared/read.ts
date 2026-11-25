@@ -240,7 +240,7 @@ async function sendClause(
 // request, because the pagination only changes the URL (see Return All).
 export function clauseOption(
 	condition: string,
-	rangeField: string,
+	rangeExample: string,
 	placeholder: string,
 ): INodeProperties {
 	return {
@@ -249,7 +249,7 @@ export function clauseOption(
 		type: 'string',
 		default: '',
 		placeholder,
-		description: `${condition} Write = as $EQ$, &lt;&gt; as $NE$, &lt; as $LT$, &gt; as $GT$, &gt;= as $GT$$EQ$, &lt;= as $LT$$EQ$, % as $P100$ and : as $2P$. Write dates as 'yyyyMMdd'. Example: BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'. Only printable ASCII (no umlauts, no line breaks) and no ; -- /* or SQL keywords such as SELECT, SET, UPDATE, CHAR or CONVERT (also inside text), otherwise the API answers with status 400. Keep it under 2000 characters: instead of a long IN (...) list, filter on another field or use a range such as ${rangeField}$GT$5000 and continue with the next range. See the README for details.`,
+		description: `${condition} Write = as $EQ$, &lt;&gt; as $NE$, &lt; as $LT$, &gt; as $GT$, &gt;= as $GT$$EQ$, &lt;= as $LT$$EQ$, % as $P100$ and : as $2P$. Write dates as 'yyyyMMdd'. Example: BookingDate$GT$$EQ$'20261001' AND BookingDate$LT$'20261101'. Only printable ASCII (no umlauts, no line breaks) and no ; -- /* or SQL keywords such as SELECT, SET, UPDATE, CHAR or CONVERT (also inside text), otherwise the API answers with status 400. Keep it under 2000 characters: instead of a long IN (...) list, filter on another field or use a range such as ${rangeExample} and continue with the next range. See the README for details.`,
 		routing: {
 			send: {
 				preSend: [sendClause],
@@ -280,7 +280,8 @@ function searchOptions(info: ResourceInfo, examples: GetManyExamples): INodeProp
 	return [
 		clauseOption(
 			`SQL condition on the table columns of the ${info.labelPlural}, combined with the filters by AND.`,
-			info.idField,
+			// A text key needs quotes in the range example
+			info.textKeyExample === undefined ? `${info.idField}$GT$5000` : `${info.idField}$GT$$EQ$'M'`,
 			examples.clause,
 		),
 		{

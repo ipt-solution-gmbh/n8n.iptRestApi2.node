@@ -19,8 +19,13 @@ export function operationProperty(
 	additionalOperations: INodePropertyOptions[] = [],
 	offeredOperations = ['create', 'delete', 'get', 'getAll', 'update'],
 ): INodeProperties {
-	const record = `${/^[aeiou]/.test(info.label) ? 'an' : 'a'} ${info.label}`;
-	const recordUrl = `=${info.path}/{{encodeURIComponent($parameter.${info.idParameter})}}`;
+	// "unit" starts with a vowel but takes "a"
+	const record = `${/^[aeio]/.test(info.label) ? 'an' : 'a'} ${info.label}`;
+	// A text key goes into the query (idProperty in resource.ts), so the URL is the path alone
+	const recordUrl =
+		info.textKeyExample === undefined
+			? `=${info.path}/{{encodeURIComponent($parameter.${info.idParameter})}}`
+			: info.path;
 
 	// ignoreHttpStatusErrors is set per operation, so only operations that check the response
 	// with throwOnApiError accept error statuses

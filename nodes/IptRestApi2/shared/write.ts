@@ -285,6 +285,12 @@ export function returnPositionsProperty(resource: string): INodeProperties {
 	};
 }
 
+// Note for Update of resources with a text key: a key sent in Data renames the record, and
+// records that use the old key keep it
+export function textKeyUpdateNote(info: ResourceInfo): string {
+	return `Do not send ${info.idField} here: it renames the ${info.label}, and products, documents and other records that use the old key are not changed and then refer to a ${info.label} that no longer exists. Rename it in myfactory instead.`;
+}
+
 // The note explains rules of the resource that go beyond changing single fields
 export function updateDataProperty(
 	resource: string,

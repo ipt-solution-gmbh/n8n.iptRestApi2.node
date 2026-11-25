@@ -1,12 +1,23 @@
 import { NodeConnectionTypes, type INodeType, type INodeTypeDescription } from 'n8n-workflow';
 import { addressDescription } from './resources/address';
 import { addressInfo } from './resources/address/get';
+import { addressGroupDescription } from './resources/addressGroup';
 import { contactDescription } from './resources/contact';
 import { contactInfo } from './resources/contact/get';
+import { contactGroupDescription } from './resources/contactGroup';
+import { countryDescription, countryInfo } from './resources/country';
+import { currencyDescription, currencyInfo } from './resources/currency';
 import { customerDescription } from './resources/customer';
 import { customerInfo } from './resources/customer/get';
+import { customerGroupDescription, customerGroupInfo } from './resources/customerGroup';
+import { deliveryConditionDescription, deliveryConditionInfo } from './resources/deliveryCondition';
+import { manufacturerDescription, manufacturerInfo } from './resources/manufacturer';
+import { paymentConditionDescription, paymentConditionInfo } from './resources/paymentCondition';
 import { productDescription } from './resources/product';
 import { productInfo } from './resources/product/get';
+import { productGroupDescription, productGroupInfo } from './resources/productGroup';
+import { productStateDescription, productStateInfo } from './resources/productState';
+import { productTypeDescription } from './resources/productType';
 import { purchaseOrderDescription } from './resources/purchaseOrder';
 import { purchaseOrderInfo } from './resources/purchaseOrder/get';
 import { purchaseOrderPositionDescription } from './resources/purchaseOrderPosition';
@@ -15,14 +26,18 @@ import { salesOrderDescription } from './resources/salesOrder';
 import { salesOrderInfo } from './resources/salesOrder/get';
 import { salesOrderPositionDescription } from './resources/salesOrderPosition';
 import { salesOrderPositionInfo } from './resources/salesOrderPosition/get';
+import { shipmentConditionDescription, shipmentConditionInfo } from './resources/shipmentCondition';
 import { supplierDescription } from './resources/supplier';
 import { supplierInfo } from './resources/supplier/get';
+import { supplierGroupDescription, supplierGroupInfo } from './resources/supplierGroup';
 import { supportCaseDescription } from './resources/supportCase';
 import { supportCaseInfo } from './resources/supportCase/get';
 import { supportCasePositionDescription } from './resources/supportCasePosition';
 import { supportCasePositionInfo } from './resources/supportCasePosition/get';
 import { supportMailDescription } from './resources/supportMail';
 import { tableDataDescription } from './resources/tableData';
+import { unitDescription, unitInfo } from './resources/unit';
+import { weightUnitDescription, weightUnitInfo } from './resources/weightUnit';
 import { writeFieldsLoader } from './shared/write';
 
 export class IptRestApi2 implements INodeType {
@@ -32,15 +47,27 @@ export class IptRestApi2 implements INodeType {
 			getWriteFields: writeFieldsLoader([
 				addressInfo,
 				contactInfo,
+				countryInfo,
+				currencyInfo,
 				customerInfo,
+				customerGroupInfo,
+				deliveryConditionInfo,
+				manufacturerInfo,
+				paymentConditionInfo,
 				productInfo,
+				productGroupInfo,
+				productStateInfo,
 				purchaseOrderInfo,
 				purchaseOrderPositionInfo,
 				salesOrderInfo,
 				salesOrderPositionInfo,
+				shipmentConditionInfo,
 				supplierInfo,
+				supplierGroupInfo,
 				supportCaseInfo,
 				supportCasePositionInfo,
+				unitInfo,
+				weightUnitInfo,
 			]),
 		},
 	};
@@ -79,16 +106,60 @@ export class IptRestApi2 implements INodeType {
 						value: 'address',
 					},
 					{
+						name: 'Address Group',
+						value: 'addressGroup',
+					},
+					{
 						name: 'Contact',
 						value: 'contact',
+					},
+					{
+						name: 'Contact Group',
+						value: 'contactGroup',
+					},
+					{
+						name: 'Country',
+						value: 'country',
+					},
+					{
+						name: 'Currency',
+						value: 'currency',
 					},
 					{
 						name: 'Customer',
 						value: 'customer',
 					},
 					{
+						name: 'Customer Group',
+						value: 'customerGroup',
+					},
+					{
+						name: 'Delivery Condition',
+						value: 'deliveryCondition',
+					},
+					{
+						name: 'Manufacturer',
+						value: 'manufacturer',
+					},
+					{
+						name: 'Payment Condition',
+						value: 'paymentCondition',
+					},
+					{
 						name: 'Product',
 						value: 'product',
+					},
+					{
+						name: 'Product Group',
+						value: 'productGroup',
+					},
+					{
+						name: 'Product State',
+						value: 'productState',
+					},
+					{
+						name: 'Product Type',
+						value: 'productType',
 					},
 					{
 						name: 'Purchase Order',
@@ -107,8 +178,16 @@ export class IptRestApi2 implements INodeType {
 						value: 'salesOrderPosition',
 					},
 					{
+						name: 'Shipment Condition',
+						value: 'shipmentCondition',
+					},
+					{
 						name: 'Supplier',
 						value: 'supplier',
+					},
+					{
+						name: 'Supplier Group',
+						value: 'supplierGroup',
 					},
 					{
 						name: 'Support Case',
@@ -126,23 +205,46 @@ export class IptRestApi2 implements INodeType {
 						name: 'Table Data',
 						value: 'tableData',
 					},
+					{
+						name: 'Unit',
+						value: 'unit',
+					},
+					{
+						name: 'Weight Unit',
+						value: 'weightUnit',
+					},
 				],
 				// Product stays the default, because a node without a stored resource falls back to it
 				default: 'product',
 			},
 			...addressDescription,
+			...addressGroupDescription,
 			...contactDescription,
+			...contactGroupDescription,
+			...countryDescription,
+			...currencyDescription,
 			...customerDescription,
+			...customerGroupDescription,
+			...deliveryConditionDescription,
+			...manufacturerDescription,
+			...paymentConditionDescription,
 			...productDescription,
+			...productGroupDescription,
+			...productStateDescription,
+			...productTypeDescription,
 			...purchaseOrderDescription,
 			...purchaseOrderPositionDescription,
 			...salesOrderDescription,
 			...salesOrderPositionDescription,
+			...shipmentConditionDescription,
 			...supplierDescription,
+			...supplierGroupDescription,
 			...supportCaseDescription,
 			...supportCasePositionDescription,
 			...supportMailDescription,
 			...tableDataDescription,
+			...unitDescription,
+			...weightUnitDescription,
 		],
 	};
 }
