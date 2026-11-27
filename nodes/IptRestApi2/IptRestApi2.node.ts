@@ -24,6 +24,32 @@ import { purchaseOrderPositionDescription } from './resources/purchaseOrderPosit
 import { purchaseOrderPositionInfo } from './resources/purchaseOrderPosition/get';
 import { salesOrderDescription } from './resources/salesOrder';
 import { salesOrderInfo } from './resources/salesOrder/get';
+import {
+	salesOrderContractDescription,
+	salesOrderContractInfo,
+} from './resources/salesOrderContract';
+import { salesOrderContractBatchDescription } from './resources/salesOrderContractBatch';
+import {
+	salesOrderContractCancellationDescription,
+	salesOrderContractCancellationInfo,
+} from './resources/salesOrderContractCancellation';
+import {
+	salesOrderContractOrderDescription,
+	salesOrderContractOrderInfo,
+} from './resources/salesOrderContractOrder';
+import {
+	salesOrderContractPauseDescription,
+	salesOrderContractPauseInfo,
+} from './resources/salesOrderContractPause';
+import { salesOrderContractResultDescription } from './resources/salesOrderContractResult';
+import {
+	salesOrderContractTermDescription,
+	salesOrderContractTermInfo,
+} from './resources/salesOrderContractTerm';
+import {
+	salesOrderContractTypeDescription,
+	salesOrderContractTypeInfo,
+} from './resources/salesOrderContractType';
 import { salesOrderPositionDescription } from './resources/salesOrderPosition';
 import { salesOrderPositionInfo } from './resources/salesOrderPosition/get';
 import { shipmentConditionDescription, shipmentConditionInfo } from './resources/shipmentCondition';
@@ -60,6 +86,12 @@ export class IptRestApi2 implements INodeType {
 				purchaseOrderInfo,
 				purchaseOrderPositionInfo,
 				salesOrderInfo,
+				salesOrderContractInfo,
+				salesOrderContractCancellationInfo,
+				salesOrderContractOrderInfo,
+				salesOrderContractPauseInfo,
+				salesOrderContractTermInfo,
+				salesOrderContractTypeInfo,
 				salesOrderPositionInfo,
 				shipmentConditionInfo,
 				supplierInfo,
@@ -174,6 +206,38 @@ export class IptRestApi2 implements INodeType {
 						value: 'salesOrder',
 					},
 					{
+						name: 'Sales Order Contract',
+						value: 'salesOrderContract',
+					},
+					{
+						name: 'Sales Order Contract Batch',
+						value: 'salesOrderContractBatch',
+					},
+					{
+						name: 'Sales Order Contract Cancellation',
+						value: 'salesOrderContractCancellation',
+					},
+					{
+						name: 'Sales Order Contract Order',
+						value: 'salesOrderContractOrder',
+					},
+					{
+						name: 'Sales Order Contract Pause',
+						value: 'salesOrderContractPause',
+					},
+					{
+						name: 'Sales Order Contract Result',
+						value: 'salesOrderContractResult',
+					},
+					{
+						name: 'Sales Order Contract Term',
+						value: 'salesOrderContractTerm',
+					},
+					{
+						name: 'Sales Order Contract Type',
+						value: 'salesOrderContractType',
+					},
+					{
 						name: 'Sales Order Position',
 						value: 'salesOrderPosition',
 					},
@@ -235,6 +299,14 @@ export class IptRestApi2 implements INodeType {
 			...purchaseOrderDescription,
 			...purchaseOrderPositionDescription,
 			...salesOrderDescription,
+			...salesOrderContractDescription,
+			...salesOrderContractBatchDescription,
+			...salesOrderContractCancellationDescription,
+			...salesOrderContractOrderDescription,
+			...salesOrderContractPauseDescription,
+			...salesOrderContractResultDescription,
+			...salesOrderContractTermDescription,
+			...salesOrderContractTypeDescription,
 			...salesOrderPositionDescription,
 			...shipmentConditionDescription,
 			...supplierDescription,

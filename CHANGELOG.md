@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- Contract resources: Sales Order Contract (`/salesordercontracts`), Sales Order Contract Order (`/salesordercontractorders`, the order plan), Sales Order Contract Type (`/salesordercontracttypes`, text key `ContractTypeName`), Sales Order Contract Term (`/salesordercontractterms`), Sales Order Contract Cancellation (`/salesordercontractcancellations`) and Sales Order Contract Pause (`/salesordercontractpauses`) with the operations Create, Delete (one record by ID or key), Get, Get Many and Update. Sales Order Contract Batch (`/salesordercontractbatches`) and Sales Order Contract Result (`/salesordercontractresults`) with Get and Get Many. Needs ipt RestApi2 29.21.0.
+- Sales Order Contract offers Changed Since for Get Many.
+- Sales Order Contract operation Generate Orders (`POST /salesordercontracts/generateorders`). It creates the sales orders that are due up to a date from the active contracts of the given contract types and returns the `batchId` of the run. Contract Types is a comma-separated list, To Date is required.
+- Generate Orders has the switch Use Pauses in Additional Fields (`usePauses`, off by default, needs ipt RestApi2 58.5.0). With it, the API takes contract pauses into account like order generation in myfactory. Without it, and on older versions, pauses are ignored.
+- The notices and the README describe the delete rules of contracts, contract types, terms and notice periods from ipt RestApi2 58.6.1 on: status 409 while they are still used or, for a contract, once Generate Orders wrote a result for it, and a deleted contract takes its order plan entries with it. Older versions delete without these checks.
+- README: section on contracts with the steps from template sales order to generated orders, and a warning about Generate Orders in the section on AI agent tools.
+
 ### Changed
 
 - README: new section Example workflows with two step-by-step examples, create and update a customer group, and find and delete a customer.
