@@ -10,6 +10,7 @@
 - Generate Orders has the switch Use Pauses in Additional Fields (`usePauses`, off by default, needs ipt RestApi2 58.5.0). With it, the API takes contract pauses into account like order generation in myfactory. Without it, and on older versions, pauses are ignored.
 - The notices and the README describe the delete rules of contracts, contract types, terms and notice periods from ipt RestApi2 58.6.1 on: status 409 while they are still used or, for a contract, once Generate Orders wrote a result for it, and a deleted contract takes its order plan entries with it. Older versions delete without these checks.
 - README: section on contracts with the steps from template sales order to generated orders, and a warning about Generate Orders in the section on AI agent tools.
+- Resource Error Log (`/errorlogs`) with the operations Get and Get Many. It reads the error log of myfactory, only the entries of the database of the credential. Get returns the call stack of an entry, Get Many leaves it out. Get Many has the options Log Date From and Log Date To for a time range and Log ID Greater Than to read the entries added since the last run. Needs ipt RestApi2 58.7.0.
 
 ### Changed
 

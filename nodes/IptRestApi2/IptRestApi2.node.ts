@@ -11,6 +11,7 @@ import { customerDescription } from './resources/customer';
 import { customerInfo } from './resources/customer/get';
 import { customerGroupDescription, customerGroupInfo } from './resources/customerGroup';
 import { deliveryConditionDescription, deliveryConditionInfo } from './resources/deliveryCondition';
+import { errorLogDescription } from './resources/errorLog';
 import { manufacturerDescription, manufacturerInfo } from './resources/manufacturer';
 import { paymentConditionDescription, paymentConditionInfo } from './resources/paymentCondition';
 import { productDescription } from './resources/product';
@@ -170,6 +171,10 @@ export class IptRestApi2 implements INodeType {
 						value: 'deliveryCondition',
 					},
 					{
+						name: 'Error Log',
+						value: 'errorLog',
+					},
+					{
 						name: 'Manufacturer',
 						value: 'manufacturer',
 					},
@@ -290,6 +295,7 @@ export class IptRestApi2 implements INodeType {
 			...customerDescription,
 			...customerGroupDescription,
 			...deliveryConditionDescription,
+			...errorLogDescription,
 			...manufacturerDescription,
 			...paymentConditionDescription,
 			...productDescription,
